@@ -1,0 +1,19 @@
+{
+  "name": "offer-lanka-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/admin",
+    "packages/*",
+    "functions"
+  ],
+  "scripts": {
+    "dev:admin": "npm run dev --workspace=apps/admin",
+    "dev:mobile": "npm run start --workspace=apps/mobile",
+    "dev:api": "cd services/offer-match-api && uvicorn main:app --reload",
+    "install:all": "npm install"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "^55.0.11"
+  }
+}

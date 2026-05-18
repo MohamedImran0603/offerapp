@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions for dynamic role lookup
+    function getAdminData() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+
+    function isSuperAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+        getAdminData().role == 'super_admin';
+    }
+
+    function isRegionalAdmin() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+        getAdminData().role == 'regional_admin';
+    }
+
+    function isModerator() {
+      return request.auth != null && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) && 
+        getAdminData().role == 'moderator';
+    }
+
+    // ── OFFERS ──────────────────────────────────────────────
+    match /offers/{offerId} {
+      allow read: if true;
+      // Allow any logged-in administrator profile to write
+      allow write: if isSuperAdmin() || isRegionalAdmin() || isModerator();
+    }
+
+    // ── ADMINS (RBAC Settings) ─────────────────────────────
+    match /admins/{adminId} {
+      // Allow users to load/create their own profile on register (or super admin access)
+      allow read: if request.auth != null;
+      allow write: if isSuperAdmin() || (request.auth != null && request.auth.uid == adminId);
+    }
+
+    // ── AUDIT LOGS (Read-only security logs) ───────────────
+    match /auditLogs/{logId} {
+      allow read: if isSuperAdmin();
+      allow create: if request.auth != null;
+      allow update, delete: if false; // Unalterable audit trail!
+    }
+
+    // ── USERS ───────────────────────────────────────────────
+    match /users/{userId} {
+      allow read, write: if true;
+
+      match /favorites/{favId} {
+        allow read, write: if true;
+      }
+
+      match /shoppingList/{itemId} {
+        allow read, write: if true;
+      }
+
+      match /searchHistory/{searchId} {
+        allow read, write: if true;
+      }
+    }
+
+    // ── CATEGORIES ──────────────────────────────────────────
+    match /categories/{catId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || isRegionalAdmin();
+    }
+  }
+}

@@ -3,9 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, Styl
 import { useRouter } from 'expo-router';
 import { Colors } from '../src/constants/Colors';
 import { saveUserProfile } from '../src/lib/userService';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../src/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import * as WebBrowser from 'expo-web-browser';
 
 export default function RegisterScreen() {
@@ -22,6 +22,9 @@ export default function RegisterScreen() {
   // Email Portal fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
+  const [emailName, setEmailName] = useState('');
+  const [emailDistrict, setEmailDistrict] = useState('Colombo');
   
   const [showModal, setShowModal] = useState(false);
 
@@ -54,31 +57,67 @@ export default function RegisterScreen() {
         setLoading(false);
       }
     } else {
-      // Email Portal Auth Login
-      if (email.trim() === '' || password.trim() === '') {
-        alert('Please fill in your Email Address and Password to continue.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        console.log('✅ Successfully authenticated email partner portal');
-        
-        const uid = userCredential.user.uid;
-        const adminDoc = await getDoc(doc(db, 'admins', uid));
-        
-        if (adminDoc.exists()) {
-          console.log('👑 Admin detected! Opening secure web control panel...');
-          await WebBrowser.openBrowserAsync('https://offerlanka-admin.loca.lt');
+      if (emailMode === 'signup') {
+        // Email Customer Registration Flow
+        if (emailName.trim() === '' || email.trim() === '' || password.trim() === '' || emailDistrict.trim() === '') {
+          alert('Please enter your Name, Email, Password, and District to register.');
+          setLoading(false);
+          return;
         }
 
-        router.replace('/(tabs)/home');
-      } catch (error: any) {
-        console.error('❌ Portal login failed:', error);
-        alert(error.message || 'Verification failed. Please review your email and password.');
-      } finally {
-        setLoading(false);
+        try {
+          console.log('Registering user account...');
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const uid = userCredential.user.uid;
+
+          console.log(`✅ Auth user registered! UID: ${uid}`);
+          console.log('Saving customer profile to Firestore...');
+
+          // Save their user profile natively to Firestore '/users/{uid}'
+          await setDoc(doc(db, 'users', uid), {
+            uid: uid,
+            name: emailName,
+            email: email,
+            district: emailDistrict,
+            role: 'user',
+            createdAt: new Date().toISOString()
+          });
+
+          console.log('✅ Customer profile saved to Firestore!');
+          router.replace('/(tabs)/home');
+        } catch (error: any) {
+          console.error('❌ Registration failed:', error);
+          alert(error.message || 'Registration failed. Please check your details and password length (min 6 characters).');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        // Email Portal Auth Login
+        if (email.trim() === '' || password.trim() === '') {
+          alert('Please fill in your Email Address and Password to continue.');
+          setLoading(false);
+          return;
+        }
+
+        try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          console.log('✅ Successfully authenticated email partner portal');
+          
+          const uid = userCredential.user.uid;
+          const adminDoc = await getDoc(doc(db, 'admins', uid));
+          
+          if (adminDoc.exists()) {
+            console.log('👑 Admin detected! Opening secure web control panel...');
+            await WebBrowser.openBrowserAsync('https://offerlanka-admin.loca.lt');
+          }
+
+          router.replace('/(tabs)/home');
+        } catch (error: any) {
+          console.error('❌ Portal login failed:', error);
+          alert(error.message || 'Verification failed. Please review your email and password.');
+        } finally {
+          setLoading(false);
+        }
       }
     }
   };
@@ -138,6 +177,19 @@ export default function RegisterScreen() {
             </>
           ) : (
             <>
+              {emailMode === 'signup' && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.icon}>👤</Text>
+                  <TextInput
+                    placeholder="Full Name"
+                    style={styles.input}
+                    value={emailName}
+                    onChangeText={setEmailName}
+                    placeholderTextColor="#9ca3af"
+                  />
+                </View>
+              )}
+
               <View style={styles.inputContainer}>
                 <Text style={styles.icon}>✉️</Text>
                 <TextInput
@@ -154,7 +206,7 @@ export default function RegisterScreen() {
               <View style={styles.inputContainer}>
                 <Text style={styles.icon}>🔒</Text>
                 <TextInput
-                  placeholder="Password"
+                  placeholder="Password (min 6 characters)"
                   style={styles.input}
                   value={password}
                   onChangeText={setPassword}
@@ -163,17 +215,40 @@ export default function RegisterScreen() {
                   placeholderTextColor="#9ca3af"
                 />
               </View>
+
+              {emailMode === 'signup' && (
+                <View style={styles.inputContainer}>
+                  <Text style={styles.icon}>📍</Text>
+                  <TextInput
+                    placeholder="District (e.g. Colombo, Kandy)"
+                    style={styles.input}
+                    value={emailDistrict}
+                    onChangeText={setEmailDistrict}
+                    placeholderTextColor="#9ca3af"
+                  />
+                </View>
+              )}
             </>
           )}
         </View>
 
-        {/* Sign In Button */}
+        {/* Submit Action Button */}
         <TouchableOpacity
           style={styles.primaryButton}
           onPress={activeTab === 'phone' ? () => setShowModal(true) : handleRegister}
           disabled={loading}
         >
-          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Sign in</Text>}
+          {loading ? (
+            <ActivityIndicator color="white" />
+          ) : (
+            <Text style={styles.buttonText}>
+              {activeTab === 'phone'
+                ? 'Sign in'
+                : emailMode === 'signin'
+                ? 'Sign in'
+                : 'Register & Sign In'}
+            </Text>
+          )}
         </TouchableOpacity>
 
         <View style={{ alignItems: 'center', marginVertical: 20 }}>
@@ -192,8 +267,27 @@ export default function RegisterScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={{ marginTop: 24, alignItems: 'center' }}>
-          <Text style={{ color: '#6b7280' }}>New user? <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Create account</Text></Text>
+        {/* Dynamic Auth Toggle Link */}
+        <TouchableOpacity 
+          style={{ marginTop: 24, alignItems: 'center' }}
+          onPress={() => {
+            if (activeTab === 'phone') {
+              setActiveTab('email');
+              setEmailMode('signup');
+            } else {
+              setEmailMode(emailMode === 'signin' ? 'signup' : 'signin');
+            }
+          }}
+        >
+          <Text style={{ color: '#6b7280' }}>
+            {activeTab === 'phone' ? (
+              <>New user? <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Create account</Text></>
+            ) : emailMode === 'signin' ? (
+              <>New to Email Portal? <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Create account</Text></>
+            ) : (
+              <>Already have an account? <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Sign In</Text></>
+            )}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
 

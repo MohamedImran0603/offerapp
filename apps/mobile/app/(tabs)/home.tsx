@@ -385,7 +385,7 @@ export default function HomeScreen() {
                 <Text style={{ fontSize: 20 }}>🔔</Text>
                 <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
              </View>
-             <TouchableOpacity style={styles.loginBtn}>
+             <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/register')}>
                 <Text style={styles.loginBtnText}>Login/Register</Text>
              </TouchableOpacity>
           </View>

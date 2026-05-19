@@ -95,13 +95,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="saved"
         options={{
-<<<<<<< Updated upstream
           href: isAdmin ? null : '/saved',
           title: 'Saved',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>❤️</Text>,
-=======
           href: null,
->>>>>>> Stashed changes
         }}
       />
       <Tabs.Screen

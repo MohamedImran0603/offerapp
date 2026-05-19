@@ -25,7 +25,7 @@ export default function HomeScreen() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [activeBrand, setActiveBrand] = useState('ALL');
-  const [clickedCategories, setClickedCategories] = useState<{[key: string]: number}>({
+  const [clickedCategories, setClickedCategories] = useState<{ [key: string]: number }>({
     'Food - Grocery': 2,
     'Electronics': 1
   });
@@ -45,7 +45,7 @@ export default function HomeScreen() {
   const [activeTopTab, setActiveTopTab] = useState('Top pick');
   const [selectedDistrict, setSelectedDistrict] = useState('Whole Country');
   const [isDistrictModalVisible, setDistrictModalVisible] = useState(false);
-  
+
   // Camera Scanning State
   const [isScanning, setIsScanning] = useState(false);
   const [isCameraMenuVisible, setIsCameraMenuVisible] = useState(false);
@@ -55,7 +55,7 @@ export default function HomeScreen() {
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    seedDatabase(); 
+    seedDatabase();
 
     const q = query(collection(db, 'offers'), orderBy('createdAt', 'desc'));
     const unsubscribeOffers = onSnapshot(q, (snapshot) => {
@@ -153,17 +153,17 @@ export default function HomeScreen() {
     setTimeout(() => {
       const availableOffers = offers.length > 0 ? offers : mockData;
       let matchedProduct;
-      
+
       const keywordToUse = searchKey || '';
-      
+
       if (keywordToUse && keywordToUse.trim() !== '') {
-        matchedProduct = availableOffers.find(o => 
-          o.title.toLowerCase().includes(keywordToUse.toLowerCase()) || 
+        matchedProduct = availableOffers.find(o =>
+          o.title.toLowerCase().includes(keywordToUse.toLowerCase()) ||
           o.category.toLowerCase().includes(keywordToUse.toLowerCase()) ||
           o.store.toLowerCase().includes(keywordToUse.toLowerCase())
         );
       }
-      
+
       if (!matchedProduct && keywordToUse.trim() !== '') {
         // If no match found for the keyword, create a dynamic mock product 
         // so the user sees the "correct" result they typed
@@ -178,16 +178,16 @@ export default function HomeScreen() {
           image: `https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80&keyword=${keywordToUse}`
         };
       }
-      
+
       if (!matchedProduct) {
         // AI Simulation: If no keyword provided, intelligently "guess" a high-quality product 
         // We prioritize popular tech items like iPhone/Samsung to make the demo feel "Real AI"
-        const popularProducts = availableOffers.filter(o => 
-          o.title.toLowerCase().includes('iphone') || 
-          o.title.toLowerCase().includes('samsung') || 
+        const popularProducts = availableOffers.filter(o =>
+          o.title.toLowerCase().includes('iphone') ||
+          o.title.toLowerCase().includes('samsung') ||
           o.title.toLowerCase().includes('sony')
         );
-        
+
         if (popularProducts.length > 0) {
           matchedProduct = popularProducts[Math.floor(Math.random() * popularProducts.length)];
         } else {
@@ -195,16 +195,16 @@ export default function HomeScreen() {
           matchedProduct = availableOffers[randomIndex];
         }
       }
-      
+
       matchedProduct = matchedProduct || availableOffers[0];
 
       setDetectionResult(matchedProduct);
-      
+
       setTimeout(() => {
         setIsScanning(false);
         setScannedImage(null);
         setDetectionResult(null);
-        
+
         if (matchedProduct && matchedProduct.id) {
           router.push(`/offer/${matchedProduct.id}`);
         }
@@ -218,8 +218,8 @@ export default function HomeScreen() {
   const filteredOffers = offers.filter(offer => {
     const matchesCategory = activeCategory === 'ALL' || offer.category === activeCategory;
     const matchesBrand = activeBrand === 'ALL' || offer.store.toLowerCase() === activeBrand.toLowerCase();
-    const matchesSearch = offer.title.toLowerCase().includes(search.toLowerCase()) || 
-                         offer.store.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = offer.title.toLowerCase().includes(search.toLowerCase()) ||
+      offer.store.toLowerCase().includes(search.toLowerCase());
     const matchesDistrict = selectedDistrict === 'Whole Country' || offer.district === selectedDistrict;
     return matchesCategory && matchesBrand && matchesSearch && matchesDistrict;
   });
@@ -231,16 +231,16 @@ export default function HomeScreen() {
         <View style={styles.menuOverlay}>
           <View style={styles.menuContent}>
             <View style={styles.menuHeader}>
-               <Text style={styles.menuTitle}>AI Image Search</Text>
-               <TouchableOpacity onPress={() => setIsCameraMenuVisible(false)}>
-                  <Ionicons name="close" size={24} color="#6b7280" />
-               </TouchableOpacity>
+              <Text style={styles.menuTitle}>AI Image Search</Text>
+              <TouchableOpacity onPress={() => setIsCameraMenuVisible(false)}>
+                <Ionicons name="close" size={24} color="#6b7280" />
+              </TouchableOpacity>
             </View>
             <Text style={styles.menuSubTitle}>Scan to see full product details and offers</Text>
-            
+
             <View style={styles.keywordInputContainer}>
               <Ionicons name="search" size={18} color="#9ca3af" />
-              <TextInput 
+              <TextInput
                 placeholder="Optional: What are you scanning? (e.g. iPhone)"
                 style={styles.keywordInput}
                 value={imageSearchKeyword}
@@ -249,36 +249,36 @@ export default function HomeScreen() {
               />
             </View>
 
-            <TouchableOpacity 
-              style={styles.menuItem} 
+            <TouchableOpacity
+              style={styles.menuItem}
               onPress={handleTakePhoto}
             >
-               <View style={[styles.menuIconBox, { backgroundColor: '#f3e8ff' }]}>
-                  <Ionicons name="camera" size={24} color={Colors.primary} />
-               </View>
-               <View style={{ flex: 1 }}>
-                  <Text style={styles.menuItemText}>Capture Actual Product</Text>
-                  <Text style={styles.menuItemSub}>Directly open product menu & details</Text>
-               </View>
-               <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+              <View style={[styles.menuIconBox, { backgroundColor: '#f3e8ff' }]}>
+                <Ionicons name="camera" size={24} color={Colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.menuItemText}>Capture Actual Product</Text>
+                <Text style={styles.menuItemSub}>Directly open product menu & details</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.menuItem} 
+            <TouchableOpacity
+              style={styles.menuItem}
               onPress={handlePickImage}
             >
-               <View style={[styles.menuIconBox, { backgroundColor: '#dcfce7' }]}>
-                  <Ionicons name="image" size={24} color="#16a34a" />
-               </View>
-               <View style={{ flex: 1 }}>
-                  <Text style={styles.menuItemText}>Upload from Gallery</Text>
-                  <Text style={styles.menuItemSub}>Match image with catalog pages</Text>
-               </View>
-               <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
+              <View style={[styles.menuIconBox, { backgroundColor: '#dcfce7' }]}>
+                <Ionicons name="image" size={24} color="#16a34a" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.menuItemText}>Upload from Gallery</Text>
+                <Text style={styles.menuItemSub}>Match image with catalog pages</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#d1d5db" />
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsCameraMenuVisible(false)}>
-               <Text style={styles.cancelBtnText}>Cancel</Text>
+              <Text style={styles.cancelBtnText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -289,7 +289,7 @@ export default function HomeScreen() {
         <View style={styles.scanOverlay}>
           <View style={styles.scanContainer}>
             <Text style={styles.scanTitle}>
-               {detectionResult ? 'PRODUCT IDENTIFIED!' : 'AI IMAGE SCANNING...'}
+              {detectionResult ? 'PRODUCT IDENTIFIED!' : 'AI IMAGE SCANNING...'}
             </Text>
             <View style={[styles.scanFrame, detectionResult && { borderColor: '#16a34a' }]}>
               {detectionResult ? (
@@ -300,41 +300,41 @@ export default function HomeScreen() {
                 <Ionicons name="image-outline" size={80} color="rgba(255,255,255,0.3)" />
               )}
               {!detectionResult && (
-                <Animated.View 
+                <Animated.View
                   style={[
-                    styles.scanLine, 
-                    { 
-                      transform: [{ 
+                    styles.scanLine,
+                    {
+                      transform: [{
                         translateY: scanAnim.interpolate({
                           inputRange: [0, 1],
                           outputRange: [0, 240]
-                        }) 
-                      }] 
+                        })
+                      }]
                     }
-                  ]} 
+                  ]}
                 />
               )}
               {detectionResult && (
                 <View style={styles.successOverlay}>
-                   <Ionicons name="checkmark-circle" size={80} color="#16a34a" />
+                  <Ionicons name="checkmark-circle" size={80} color="#16a34a" />
                 </View>
               )}
             </View>
             <View style={styles.scanMetaBox}>
-               {detectionResult ? (
-                 <View style={styles.resultDetails}>
-                    <Text style={styles.resultStore}>{detectionResult.store}</Text>
-                    <Text style={styles.resultTitle}>{detectionResult.title}</Text>
-                    <View style={styles.resultBadge}>
-                       <Text style={styles.resultBadgeText}>Opening Product Menu...</Text>
-                    </View>
-                 </View>
-               ) : (
-                 <View style={{ alignItems: 'center' }}>
-                    <Text style={styles.scanStatus}>Analyzing Visual Features...</Text>
-                    <View style={styles.scanPulse} />
-                 </View>
-               )}
+              {detectionResult ? (
+                <View style={styles.resultDetails}>
+                  <Text style={styles.resultStore}>{detectionResult.store}</Text>
+                  <Text style={styles.resultTitle}>{detectionResult.title}</Text>
+                  <View style={styles.resultBadge}>
+                    <Text style={styles.resultBadgeText}>Opening Product Menu...</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={styles.scanStatus}>Analyzing Visual Features...</Text>
+                  <View style={styles.scanPulse} />
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -354,7 +354,7 @@ export default function HomeScreen() {
               data={districts}
               keyExtractor={(item) => item}
               renderItem={({ item }) => (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.districtItem}
                   onPress={() => {
                     setSelectedDistrict(item);
@@ -374,42 +374,42 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View style={styles.logoRow}>
           <View style={styles.logoWrapper}>
-             <Image source={require('../../assets/images/logo.png')} style={styles.headerLogo} />
+            <Image source={require('../../assets/images/logo.png')} style={styles.headerLogo} />
           </View>
           <View style={{ flex: 1, justifyContent: 'center' }}>
-             <Text style={styles.brandTitle}>Offer Lanka</Text>
-             <TouchableOpacity style={styles.districtSelector} onPress={() => setDistrictModalVisible(true)}>
-                <Ionicons name="location" size={14} color="#ef4444" />
-                <Text style={styles.districtText}>{selectedDistrict}</Text>
-                <Ionicons name="chevron-down" size={12} color="#d1d5db" style={styles.districtChevron} />
-             </TouchableOpacity>
+            <Text style={styles.brandTitle}>Offer Lanka</Text>
+            <TouchableOpacity style={styles.districtSelector} onPress={() => setDistrictModalVisible(true)}>
+              <Ionicons name="location" size={14} color="#ef4444" />
+              <Text style={styles.districtText}>{selectedDistrict}</Text>
+              <Ionicons name="chevron-down" size={12} color="#d1d5db" style={styles.districtChevron} />
+            </TouchableOpacity>
           </View>
           <View style={styles.headerRight}>
-             <TouchableOpacity style={styles.notifyContainer}>
-                <Ionicons name="notifications" size={28} color="#fbbf24" />
-                <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
-             </TouchableOpacity>
-             <TouchableOpacity style={styles.loginBtn}>
-                <Text style={styles.loginBtnText}>Login/Register</Text>
-             </TouchableOpacity>
+            <TouchableOpacity style={styles.notifyContainer}>
+              <Ionicons name="notifications" size={28} color="#fbbf24" />
+              <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.loginBtn}>
+              <Text style={styles.loginBtnText}>Login/Register</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Search Bar */}
         <View style={styles.searchRow}>
           <View style={styles.searchBar}>
-            <TextInput 
-              placeholder="Find all shopping flyers..." 
+            <TextInput
+              placeholder="Find all shopping flyers..."
               style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
             />
-            <TouchableOpacity 
-              onPress={handleCameraPress} 
+            <TouchableOpacity
+              onPress={handleCameraPress}
               style={{ padding: 10 }}
               hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             >
-               <Ionicons name="camera-outline" size={26} color="#6b21a8" />
+              <Ionicons name="camera-outline" size={26} color="#6b21a8" />
             </TouchableOpacity>
           </View>
           <TouchableOpacity style={styles.searchBtn}>
@@ -421,96 +421,96 @@ export default function HomeScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
         {/* Top Sub Tabs */}
         <View style={styles.topTabsRow}>
-           {topTabs.map((tab, idx) => (
-             <TouchableOpacity 
-               key={idx} 
-               style={[styles.topTab, activeTopTab === tab.name && styles.topTabActive]}
-               onPress={() => setActiveTopTab(tab.name)}
-             >
-                <Text style={styles.topTabIcon}>{tab.icon}</Text>
-                <Text style={[styles.topTabText, activeTopTab === tab.name && styles.topTabTextActive]}>{tab.name}</Text>
-             </TouchableOpacity>
-           ))}
+          {topTabs.map((tab, idx) => (
+            <TouchableOpacity
+              key={idx}
+              style={[styles.topTab, activeTopTab === tab.name && styles.topTabActive]}
+              onPress={() => setActiveTopTab(tab.name)}
+            >
+              <Text style={styles.topTabIcon}>{tab.icon}</Text>
+              <Text style={[styles.topTabText, activeTopTab === tab.name && styles.topTabTextActive]}>{tab.name}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
 
         {/* Categories */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScroll}>
-           {mainCategories.map((cat, idx) => (
-             <TouchableOpacity 
-               key={idx} 
-               onPress={() => setActiveCategory(cat)}
-               style={[styles.catBtn, activeCategory === cat && styles.catBtnActive]}
-             >
-                <Text style={[styles.catBtnText, activeCategory === cat && styles.catBtnTextActive]}>{cat}</Text>
-             </TouchableOpacity>
-           ))}
+          {mainCategories.map((cat, idx) => (
+            <TouchableOpacity
+              key={idx}
+              onPress={() => setActiveCategory(cat)}
+              style={[styles.catBtn, activeCategory === cat && styles.catBtnActive]}
+            >
+              <Text style={[styles.catBtnText, activeCategory === cat && styles.catBtnTextActive]}>{cat}</Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
 
         {/* Brand Circles */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandScroll}>
-           <TouchableOpacity 
-             style={styles.brandItem} 
-             onPress={() => setActiveBrand('ALL')}
-           >
-              <View style={[
-                styles.brandCircle, 
-                activeBrand === 'ALL' && styles.brandCircleSelected
-              ]}>
-                 <Text style={[
-                   styles.brandLogo, 
-                   activeBrand === 'ALL' && styles.brandLogoSelected
-                 ]}>ALL</Text>
-              </View>
+          <TouchableOpacity
+            style={styles.brandItem}
+            onPress={() => setActiveBrand('ALL')}
+          >
+            <View style={[
+              styles.brandCircle,
+              activeBrand === 'ALL' && styles.brandCircleSelected
+            ]}>
               <Text style={[
-                styles.brandName, 
-                activeBrand === 'ALL' && styles.brandNameSelected
-              ]}>All</Text>
-           </TouchableOpacity>
+                styles.brandLogo,
+                activeBrand === 'ALL' && styles.brandLogoSelected
+              ]}>ALL</Text>
+            </View>
+            <Text style={[
+              styles.brandName,
+              activeBrand === 'ALL' && styles.brandNameSelected
+            ]}>All</Text>
+          </TouchableOpacity>
 
-           {brands.map((brand, idx) => {
-             const isSelected = activeBrand === brand.name;
-             return (
-               <TouchableOpacity 
-                 key={idx} 
-                 style={styles.brandItem}
-                 onPress={() => setActiveBrand(brand.name)}
-               >
-                  <View style={[
-                    styles.brandCircle, 
-                    isSelected && styles.brandCircleSelected
-                  ]}>
-                     <Image source={{ uri: brand.logoUrl }} style={styles.brandLogoImage} />
-                  </View>
-                  <Text style={[
-                    styles.brandName, 
-                    isSelected && styles.brandNameSelected
-                  ]} numberOfLines={1}>
-                    {brand.name}
-                  </Text>
-               </TouchableOpacity>
-             );
-           })}
+          {brands.map((brand, idx) => {
+            const isSelected = activeBrand === brand.name;
+            return (
+              <TouchableOpacity
+                key={idx}
+                style={styles.brandItem}
+                onPress={() => setActiveBrand(brand.name)}
+              >
+                <View style={[
+                  styles.brandCircle,
+                  isSelected && styles.brandCircleSelected
+                ]}>
+                  <Image source={{ uri: brand.logoUrl }} style={styles.brandLogoImage} />
+                </View>
+                <Text style={[
+                  styles.brandName,
+                  isSelected && styles.brandNameSelected
+                ]} numberOfLines={1}>
+                  {brand.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
 
         {/* AI Personalized Picks Section */}
         {recommendedOffers.length > 0 && (
           <View style={styles.recSection}>
             <View style={styles.recHeaderRow}>
-               <Text style={styles.recSectionTitle}>🧠 AI Picks For You</Text>
-               <Text style={styles.recSectionSub}>Based on your behavior</Text>
+              <Text style={styles.recSectionTitle}>🧠 AI Picks For You</Text>
+              <Text style={styles.recSectionSub}>Based on your behavior</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recScroll}>
               {recommendedOffers.map((item) => (
-                <TouchableOpacity 
-                  key={item.id} 
+                <TouchableOpacity
+                  key={item.id}
                   style={styles.recCard}
                   onPress={() => handleOfferClick(item)}
                 >
                   <Image source={{ uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }} style={styles.recCardImage} />
                   <View style={styles.recCardContent}>
-                     <Text style={styles.recCardStore}>{item.store}</Text>
-                     <Text style={styles.recCardTitle} numberOfLines={1}>{item.title}</Text>
-                     <Text style={styles.recCardPrice}>Rs. {(item.newPrice || item.price || 0).toLocaleString()}</Text>
+                    <Text style={styles.recCardStore}>{item.store}</Text>
+                    <Text style={styles.recCardTitle} numberOfLines={1}>{item.title}</Text>
+                    <Text style={styles.recCardPrice}>Rs. {(item.newPrice || item.price || 0).toLocaleString()}</Text>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -524,8 +524,8 @@ export default function HomeScreen() {
         ) : (
           <View style={styles.grid}>
             {filteredOffers.map((item) => (
-              <TouchableOpacity 
-                key={item.id} 
+              <TouchableOpacity
+                key={item.id}
                 style={styles.card}
                 onPress={() => router.push(`/offer/${item.id}`)}
               >
@@ -533,17 +533,17 @@ export default function HomeScreen() {
 
                   <Image source={{ uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }} style={styles.cardImage} />
                   <View style={styles.leftBadge}>
-                     <Text style={styles.leftBadgeText}>
-                        {item.district === 'Whole Country' ? 'Island Wide' : item.district}
-                     </Text>
+                    <Text style={styles.leftBadgeText}>
+                      {item.district === 'Whole Country' ? 'Island Wide' : item.district}
+                    </Text>
                   </View>
                   <View style={styles.shopOnlineBanner}>
-                     <Text style={styles.shopOnlineText}>Shop Online</Text>
+                    <Text style={styles.shopOnlineText}>Shop Online</Text>
                   </View>
                   <View style={styles.rightBadge}>
-                     <Text style={styles.rightBadgeText}>
-                        {item.oldPrice && item.newPrice ? Math.round(((item.oldPrice - item.newPrice) / item.oldPrice) * 100) : 15}% OFF
-                     </Text>
+                    <Text style={styles.rightBadgeText}>
+                      {item.oldPrice && item.newPrice ? Math.round(((item.oldPrice - item.newPrice) / item.oldPrice) * 100) : 15}% OFF
+                    </Text>
                   </View>
                 </View>
                 <View style={styles.cardContent}>
@@ -562,8 +562,8 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* Floating AI Assistant FAB */}
-      <TouchableOpacity 
-        style={styles.floatingAssistantButton} 
+      <TouchableOpacity
+        style={styles.floatingAssistantButton}
         onPress={() => router.push('/assistant')}
       >
         <Ionicons name="chatbubble-ellipses" size={28} color="#ffffff" />

@@ -81,32 +81,39 @@ export default function TabLayout() {
           href: isAdmin ? null : '/browse',
           title: 'Browse',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📖</Text>,
+          title: 'Categories',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📁</Text>,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Account',
+          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
         }}
       />
       <Tabs.Screen
         name="saved"
         options={{
+<<<<<<< Updated upstream
           href: isAdmin ? null : '/saved',
           title: 'Saved',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>❤️</Text>,
+=======
+          href: null,
+>>>>>>> Stashed changes
         }}
       />
-      
-      {/* Dynamic 👑 Portal Tab - Only visible to authenticated Administrators! */}
       <Tabs.Screen
         name="admin"
         options={{
-          href: isAdmin ? '/admin' : null,
-          title: 'Portal',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👑</Text>,
+          href: null,
         }}
       />
-
       <Tabs.Screen
-        name="profile"
+        name="explore"
         options={{
-          title: 'Profile',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
+          href: null,
         }}
       />
     </Tabs>

@@ -13,14 +13,20 @@ export const mainCategories = [
 ];
 
 export const brands = [
-  { name: 'Abans', color: '#7c3aed', logo: 'A' },
-  { name: 'Softlogic', color: '#1e3a8a', logo: 'S' },
-  { name: 'Arpico', color: '#15803d', logo: 'Ar' },
-  { name: 'Keells', color: '#16a34a', logo: 'K' },
-  { name: 'Cargills', color: '#dc2626', logo: 'C' },
-  { name: 'Glomark', color: '#2563eb', logo: 'G' },
-  { name: 'Damro', color: '#4b5563', logo: 'D' },
-  { name: 'Singer', color: '#dc2626', logo: 'Si' },
+  { name: 'Singer', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=singer.lk' },
+  { name: 'Damro', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=damro.lk' },
+  { name: 'Abans', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=buyabans.com' },
+  { name: 'Softlogic', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=mysoftlogic.lk' },
+  { name: 'Arpico', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=arpicosupercentre.com' },
+  { name: 'Keells', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=keellssuper.com' },
+  { name: 'Cargills', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=cargillsonline.com' },
+  { name: 'Glomark', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=glomark.lk' },
+  { name: 'Odel', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=odel.lk' },
+  { name: 'Nolimit', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=nolimit.lk' },
+  { name: 'Fashion Bug', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=fashionbug.lk' },
+  { name: 'Cool Planet', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=coolplanet.lk' },
+  { name: 'House of Fashion', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=houseoffashions.lk' },
+  { name: 'Daraz', logoUrl: 'https://www.google.com/s2/favicons?sz=128&domain=daraz.lk' },
 ];
 
 const uniqueProducts = [

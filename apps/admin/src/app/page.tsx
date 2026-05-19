@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 export default function Dashboard() {
   const [offerCount, setOfferCount] = useState(0);
+  const [activeStores, setActiveStores] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,6 +14,17 @@ export default function Dashboard() {
       try {
         const offersSnapshot = await getDocs(collection(db, "offers"));
         setOfferCount(offersSnapshot.size);
+        
+        // Calculate unique stores from offers
+        const storeSet = new Set();
+        offersSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.store) {
+            storeSet.add(data.store);
+          }
+        });
+        setActiveStores(storeSet.size);
+
       } catch (error) {
         console.error("Error fetching stats:", error);
       } finally {
@@ -36,7 +48,9 @@ export default function Dashboard() {
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-gray-500 text-sm font-medium">Active Stores</h3>
-          <p className="text-3xl font-bold mt-2 text-slate-900">12</p>
+          <p className="text-3xl font-bold mt-2 text-slate-900">
+            {loading ? "..." : activeStores}
+          </p>
         </div>
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
           <h3 className="text-gray-500 text-sm font-medium">System Status</h3>
@@ -49,7 +63,7 @@ export default function Dashboard() {
         <div className="space-y-4">
           <div className="flex justify-between items-center py-3 border-b border-gray-50 last:border-0">
             <div>
-              <p className="font-medium text-gray-900">Database Connection Established</p>
+              <p className="font-medium text-gray-900">Dashboard Loaded</p>
               <p className="text-sm text-gray-500">Just now</p>
             </div>
             <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">Success</span>

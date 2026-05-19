@@ -24,6 +24,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [activeBrand, setActiveBrand] = useState('ALL');
   const [clickedCategories, setClickedCategories] = useState<{[key: string]: number}>({
     'Food - Grocery': 2,
     'Electronics': 1
@@ -217,10 +218,11 @@ export default function HomeScreen() {
 
   const filteredOffers = offers.filter(offer => {
     const matchesCategory = activeCategory === 'ALL' || offer.category === activeCategory;
+    const matchesBrand = activeBrand === 'ALL' || offer.store.toLowerCase() === activeBrand.toLowerCase();
     const matchesSearch = offer.title.toLowerCase().includes(search.toLowerCase()) || 
                          offer.store.toLowerCase().includes(search.toLowerCase());
     const matchesDistrict = selectedDistrict === 'Whole Country' || offer.district === selectedDistrict;
-    return matchesCategory && matchesSearch && matchesDistrict;
+    return matchesCategory && matchesBrand && matchesSearch && matchesDistrict;
   });
 
   return (
@@ -375,18 +377,24 @@ export default function HomeScreen() {
           <Image source={require('../../assets/images/logo.png')} style={styles.headerLogo} />
           <View style={{ flex: 1 }}>
              <Text style={styles.brandTitle}>Offer Lanka</Text>
-             <TouchableOpacity style={styles.districtSelector} onPress={() => setDistrictModalVisible(true)}>
-                <Text style={styles.districtText}>📍 {selectedDistrict}</Text>
-                <Text style={styles.districtChevron}>⌵</Text>
-             </TouchableOpacity>
           </View>
           <View style={styles.headerRight}>
-             <View style={styles.notifyContainer}>
-                <Text style={{ fontSize: 20 }}>🔔</Text>
+             <TouchableOpacity>
+                <Ionicons name="search-outline" size={24} color="#f97316" />
+             </TouchableOpacity>
+             <TouchableOpacity style={styles.notifyContainer}>
+                <Ionicons name="notifications-outline" size={24} color="#f97316" />
                 <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
-             </View>
-             <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/register')}>
-                <Text style={styles.loginBtnText}>Login/Register</Text>
+             </TouchableOpacity>
+             <TouchableOpacity>
+                <Ionicons name="cart-outline" size={24} color="#f97316" />
+             </TouchableOpacity>
+             <TouchableOpacity style={styles.locationPill} onPress={() => setDistrictModalVisible(true)}>
+                <Text style={styles.locationPillText}>{selectedDistrict}</Text>
+                <Ionicons name="location" size={16} color="#f97316" />
+             </TouchableOpacity>
+             <TouchableOpacity>
+                <Ionicons name="menu-outline" size={28} color="#ffffff" />
              </TouchableOpacity>
           </View>
         </View>
@@ -444,14 +452,48 @@ export default function HomeScreen() {
 
         {/* Brand Circles */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.brandScroll}>
-           {brands.map((brand, idx) => (
-             <View key={idx} style={styles.brandItem}>
-                <View style={[styles.brandCircle, { backgroundColor: brand.color }]}>
-                   <Text style={styles.brandLogo}>{brand.logo}</Text>
-                </View>
-                <Text style={styles.brandName} numberOfLines={1}>{brand.name}</Text>
-             </View>
-           ))}
+           <TouchableOpacity 
+             style={styles.brandItem} 
+             onPress={() => setActiveBrand('ALL')}
+           >
+              <View style={[
+                styles.brandCircle, 
+                activeBrand === 'ALL' && styles.brandCircleSelected
+              ]}>
+                 <Text style={[
+                   styles.brandLogo, 
+                   activeBrand === 'ALL' && styles.brandLogoSelected
+                 ]}>ALL</Text>
+              </View>
+              <Text style={[
+                styles.brandName, 
+                activeBrand === 'ALL' && styles.brandNameSelected
+              ]}>All</Text>
+           </TouchableOpacity>
+
+           {brands.map((brand, idx) => {
+             const isSelected = activeBrand === brand.name;
+             return (
+               <TouchableOpacity 
+                 key={idx} 
+                 style={styles.brandItem}
+                 onPress={() => setActiveBrand(brand.name)}
+               >
+                  <View style={[
+                    styles.brandCircle, 
+                    isSelected && styles.brandCircleSelected
+                  ]}>
+                     <Image source={{ uri: brand.logoUrl }} style={styles.brandLogoImage} />
+                  </View>
+                  <Text style={[
+                    styles.brandName, 
+                    isSelected && styles.brandNameSelected
+                  ]} numberOfLines={1}>
+                    {brand.name}
+                  </Text>
+               </TouchableOpacity>
+             );
+           })}
         </ScrollView>
 
         {/* AI Personalized Picks Section */}
@@ -493,23 +535,16 @@ export default function HomeScreen() {
               >
                 <View style={styles.cardImageContainer}>
                   <Image source={{ uri: item.image }} style={styles.cardImage} />
-                  <View style={styles.shopOnlineBanner}>
-                     <Text style={styles.shopOnlineText}>Shop Online</Text>
+                  <View style={styles.leftBadge}>
+                     <Text style={styles.leftBadgeText}>
+                        {item.district === 'Whole Country' ? 'Island Wide' : item.district}
+                     </Text>
                   </View>
-                  <View style={styles.clickOverlay}>
-                     <Text style={{ fontSize: 10, color: 'white' }}>👆 Click to shop online</Text>
+                  <View style={styles.rightBadge}>
+                     <Text style={styles.rightBadgeText}>
+                        {item.oldPrice && item.newPrice ? Math.round(((item.oldPrice - item.newPrice) / item.oldPrice) * 100) : 15}% OFF
+                     </Text>
                   </View>
-                  <View style={styles.brandOverlay}>
-                     <Text style={styles.brandOverlayText}>{item.store.substring(0, 2)}</Text>
-                  </View>
-                  <TouchableOpacity 
-                    style={styles.heartOverlay}
-                    onPress={() => toggleFavorite(item.id, item)}
-                  >
-                    <Text style={{ fontSize: 18, color: isFavorited(item.id) ? '#ef4444' : '#ffffff' }}>
-                      {isFavorited(item.id) ? '❤️' : '🤍'}
-                    </Text>
-                  </TouchableOpacity>
                 </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardStore}>{item.store}</Text>
@@ -845,6 +880,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 4,
+  },
+  locationPillText: {
+    color: '#111827',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   notifyContainer: {
     position: 'relative',
   },
@@ -1016,24 +1065,43 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
+    borderWidth: 2,
+    borderColor: '#f3f4f6',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
+    overflow: 'hidden',
+  },
+  brandCircleSelected: {
+    borderColor: '#f97316',
   },
   brandLogo: {
-    color: 'white',
-    fontSize: 20,
+    color: '#9ca3af',
+    fontSize: 18,
     fontWeight: 'bold',
+  },
+  brandLogoSelected: {
+    color: '#f97316',
+  },
+  brandLogoImage: {
+    width: 44,
+    height: 44,
+    resizeMode: 'contain',
   },
   brandName: {
     fontSize: 11,
     color: '#6b7280',
     fontWeight: '500',
+  },
+  brandNameSelected: {
+    color: '#f97316',
+    fontWeight: 'bold',
   },
   grid: {
     flexDirection: 'row',
@@ -1041,9 +1109,39 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   card: {
-    width: '50%',
+    width: '25%',
     padding: 8,
     marginBottom: 8,
+  },
+  leftBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    zIndex: 10,
+  },
+  leftBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+  rightBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#f97316',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    zIndex: 10,
+  },
+  rightBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'white',
   },
   cardImageContainer: {
     aspectRatio: 0.75,

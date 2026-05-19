@@ -18,8 +18,8 @@ export default function ProfileScreen() {
     return () => unsub();
   }, []);
 
-  const openAdminDashboard = async () => {
-    await WebBrowser.openBrowserAsync('https://offerlanka-admin.loca.lt');
+  const openAdminDashboard = () => {
+    router.push('/admin');
   };
 
   const menuItems = [

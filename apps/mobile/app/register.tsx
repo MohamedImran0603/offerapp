@@ -107,11 +107,11 @@ export default function RegisterScreen() {
           const adminDoc = await getDoc(doc(db, 'admins', uid));
           
           if (adminDoc.exists()) {
-            console.log('👑 Admin detected! Opening secure web control panel...');
-            await WebBrowser.openBrowserAsync('https://offerlanka-admin.loca.lt');
+            console.log('👑 Admin detected! Navigating to native control panel...');
+            router.replace('/(tabs)/admin');
+          } else {
+            router.replace('/(tabs)/home');
           }
-
-          router.replace('/(tabs)/home');
         } catch (error: any) {
           console.error('❌ Portal login failed:', error);
           alert(error.message || 'Verification failed. Please review your email and password.');

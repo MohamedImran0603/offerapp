@@ -1,4 +1,4 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useSegments, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { Colors } from '../../src/constants/Colors';
 import { Text } from 'react-native';
@@ -7,6 +7,8 @@ import { doc, getDoc } from 'firebase/firestore';
 
 export default function TabLayout() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -31,6 +33,17 @@ export default function TabLayout() {
     return () => unsubscribe();
   }, []);
 
+  // Enforce active administrator containment bounds on tab navigations / back button actions
+  useEffect(() => {
+    if (isAdmin && segments.length > 0) {
+      const currentTab = segments[segments.length - 1];
+      if (['home', 'search', 'browse', 'saved'].includes(currentTab)) {
+        console.log(`🛡️ Admin containment warning: tried to access customer screen '${currentTab}'. Redirecting to Portal!`);
+        router.replace('/(tabs)/admin');
+      }
+    }
+  }, [isAdmin, segments]);
+
   return (
     <Tabs
       screenOptions={{
@@ -49,6 +62,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
+          href: isAdmin ? null : '/home',
           title: 'Home',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
         }}
@@ -56,6 +70,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="search"
         options={{
+          href: isAdmin ? null : '/search',
           title: 'Search',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔍</Text>,
         }}
@@ -63,6 +78,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="browse"
         options={{
+          href: isAdmin ? null : '/browse',
           title: 'Browse',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📖</Text>,
         }}
@@ -70,6 +86,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="saved"
         options={{
+          href: isAdmin ? null : '/saved',
           title: 'Saved',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>❤️</Text>,
         }}

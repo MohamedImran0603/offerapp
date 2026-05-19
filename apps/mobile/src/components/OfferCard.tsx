@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 
 interface OfferCardProps {
@@ -7,6 +7,18 @@ interface OfferCardProps {
 
 export function OfferCard({ offer }: OfferCardProps) {
   const router = useRouter();
+
+  const getImageSource = () => {
+    const img = offer.image || offer.imageUrl || '';
+    if (!img) {
+      return { uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' };
+    }
+    // Explicitly support remote web URLs and direct Base64 inline strings
+    if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:image/')) {
+      return { uri: img };
+    }
+    return { uri: img.startsWith('file://') ? img : 'file://' + img };
+  };
 
   return (
     <TouchableOpacity 
@@ -25,7 +37,7 @@ export function OfferCard({ offer }: OfferCardProps) {
     >
       <View style={{ flexDirection: 'row' }}>
         <Image 
-          source={{ uri: 'file://' + offer.image }} 
+          source={getImageSource()} 
           style={{ width: 96, height: 96, borderRadius: 12, backgroundColor: '#f1f5f9' }} 
         />
         

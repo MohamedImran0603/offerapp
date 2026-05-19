@@ -60,9 +60,8 @@ export default function HomeScreen() {
     const q = query(collection(db, 'offers'), orderBy('createdAt', 'desc'));
     const unsubscribeOffers = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      if (data.length > 20) { 
-        setOffers([...data, ...mockData]); // Merge for better testing
-      }
+      // Always merge and show live Firestore items first, followed by offline mockups
+      setOffers([...data, ...mockData]);
       setLoading(false);
     }, (error) => {
       setLoading(false);
@@ -374,27 +373,24 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoRow}>
-          <Image source={require('../../assets/images/logo.png')} style={styles.headerLogo} />
-          <View style={{ flex: 1 }}>
+          <View style={styles.logoWrapper}>
+             <Image source={require('../../assets/images/logo.png')} style={styles.headerLogo} />
+          </View>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
              <Text style={styles.brandTitle}>Offer Lanka</Text>
+             <TouchableOpacity style={styles.districtSelector} onPress={() => setDistrictModalVisible(true)}>
+                <Ionicons name="location" size={14} color="#ef4444" />
+                <Text style={styles.districtText}>{selectedDistrict}</Text>
+                <Ionicons name="chevron-down" size={12} color="#d1d5db" style={styles.districtChevron} />
+             </TouchableOpacity>
           </View>
           <View style={styles.headerRight}>
-             <TouchableOpacity>
-                <Ionicons name="search-outline" size={24} color="#f97316" />
-             </TouchableOpacity>
              <TouchableOpacity style={styles.notifyContainer}>
-                <Ionicons name="notifications-outline" size={24} color="#f97316" />
+                <Ionicons name="notifications" size={28} color="#fbbf24" />
                 <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
              </TouchableOpacity>
-             <TouchableOpacity>
-                <Ionicons name="cart-outline" size={24} color="#f97316" />
-             </TouchableOpacity>
-             <TouchableOpacity style={styles.locationPill} onPress={() => setDistrictModalVisible(true)}>
-                <Text style={styles.locationPillText}>{selectedDistrict}</Text>
-                <Ionicons name="location" size={16} color="#f97316" />
-             </TouchableOpacity>
-             <TouchableOpacity>
-                <Ionicons name="menu-outline" size={28} color="#ffffff" />
+             <TouchableOpacity style={styles.loginBtn}>
+                <Text style={styles.loginBtnText}>Login/Register</Text>
              </TouchableOpacity>
           </View>
         </View>
@@ -510,7 +506,7 @@ export default function HomeScreen() {
                   style={styles.recCard}
                   onPress={() => handleOfferClick(item)}
                 >
-                  <Image source={{ uri: item.image }} style={styles.recCardImage} />
+                  <Image source={{ uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }} style={styles.recCardImage} />
                   <View style={styles.recCardContent}>
                      <Text style={styles.recCardStore}>{item.store}</Text>
                      <Text style={styles.recCardTitle} numberOfLines={1}>{item.title}</Text>
@@ -534,11 +530,15 @@ export default function HomeScreen() {
                 onPress={() => router.push(`/offer/${item.id}`)}
               >
                 <View style={styles.cardImageContainer}>
-                  <Image source={{ uri: item.image }} style={styles.cardImage} />
+
+                  <Image source={{ uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }} style={styles.cardImage} />
                   <View style={styles.leftBadge}>
                      <Text style={styles.leftBadgeText}>
                         {item.district === 'Whole Country' ? 'Island Wide' : item.district}
                      </Text>
+                  </View>
+                  <View style={styles.shopOnlineBanner}>
+                     <Text style={styles.shopOnlineText}>Shop Online</Text>
                   </View>
                   <View style={styles.rightBadge}>
                      <Text style={styles.rightBadgeText}>
@@ -849,11 +849,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  headerLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+  logoWrapper: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 2,
     marginRight: 12,
+  },
+  headerLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
   },
   brandTitle: {
     color: 'white',
@@ -864,6 +869,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 2,
+    gap: 4,
   },
   districtText: {
     color: '#d1d5db',
@@ -871,9 +877,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   districtChevron: {
-    color: '#d1d5db',
-    fontSize: 10,
-    marginLeft: 4,
+    marginLeft: 0,
   },
   headerRight: {
     flexDirection: 'row',
@@ -896,10 +900,11 @@ const styles = StyleSheet.create({
   },
   notifyContainer: {
     position: 'relative',
+    marginRight: 4,
   },
   notifyBadge: {
     position: 'absolute',
-    top: -4,
+    top: -2,
     right: -4,
     backgroundColor: '#ef4444',
     borderRadius: 8,
@@ -914,10 +919,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   loginBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 12,
+    backgroundColor: '#6b21a8',
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    borderRadius: 16,
+    borderRadius: 20,
   },
   loginBtnText: {
     color: 'white',
@@ -942,7 +947,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   searchBtn: {
-    backgroundColor: Colors.primary,
+    backgroundColor: '#6b21a8',
     paddingHorizontal: 20,
     borderRadius: 24,
     justifyContent: 'center',

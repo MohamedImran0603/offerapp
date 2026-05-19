@@ -80,9 +80,8 @@ export default function TabLayout() {
         options={{
           href: isAdmin ? null : '/browse',
           title: 'Browse',
+          // Using a single tabBarIcon for the browse/category screen; you may customize the icon as needed.
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📖</Text>,
-          title: 'Categories',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📁</Text>,
         }}
       />
       <Tabs.Screen
@@ -98,7 +97,6 @@ export default function TabLayout() {
           href: isAdmin ? null : '/saved',
           title: 'Saved',
           tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>❤️</Text>,
-          href: null,
         }}
       />
       <Tabs.Screen

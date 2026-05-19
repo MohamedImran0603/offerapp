@@ -56,7 +56,7 @@ export default function OfferDetailsScreen() {
 
   const handleAddToList = async () => {
     if (!offer) return;
-    await addToShoppingList({ title: offer.title, price: offer.newPrice });
+    await addToShoppingList({ title: offer.title, price: offer.newPrice || offer.price || 0 });
     Alert.alert("Success", "Added to your shopping list!");
   };
 
@@ -105,10 +105,15 @@ export default function OfferDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Product Image Card */}
         <View style={styles.imageCard}>
-           <Image source={{ uri: offer.image }} style={styles.productImage} />
-           <View style={styles.imageOverlay}>
-              <Text style={{ fontSize: 60 }}>{offer.category?.toLowerCase().includes('electron') ? '📱' : '🍏'}</Text>
-           </View>
+           <Image 
+             source={{ uri: offer.image || offer.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }} 
+             style={styles.productImage} 
+           />
+           {(!offer.image && !offer.imageUrl) && (
+              <View style={styles.imageOverlay}>
+                 <Text style={{ fontSize: 60 }}>{offer.category?.toLowerCase().includes('electron') ? '📱' : '🍏'}</Text>
+              </View>
+           )}
         </View>
 
         <View style={styles.content}>
@@ -130,12 +135,16 @@ export default function OfferDetailsScreen() {
            <View style={styles.priceContainer}>
               <View>
                  <Text style={styles.priceLabel}>Rs.</Text>
-                 <Text style={styles.newPrice}>{offer.newPrice?.toLocaleString()}</Text>
+                 <Text style={styles.newPrice}>{(offer.newPrice || offer.price || 0).toLocaleString()}</Text>
               </View>
-              {offer.oldPrice && <Text style={styles.oldPrice}>Rs. {offer.oldPrice.toLocaleString()}</Text>}
-              {offer.oldPrice && (
+              {(offer.oldPrice || offer.originalPrice) && (
+                <Text style={styles.oldPrice}>Rs. {(offer.oldPrice || offer.originalPrice).toLocaleString()}</Text>
+              )}
+              {(offer.oldPrice || offer.originalPrice) && (
                 <View style={styles.savingsBadge}>
-                   <Text style={styles.savingsText}>Save Rs. {(offer.oldPrice - offer.newPrice).toLocaleString()}</Text>
+                   <Text style={styles.savingsText}>
+                     Save Rs. {((offer.oldPrice || offer.originalPrice) - (offer.newPrice || offer.price || 0)).toLocaleString()}
+                   </Text>
                 </View>
               )}
            </View>

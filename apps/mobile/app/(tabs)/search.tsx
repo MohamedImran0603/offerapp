@@ -369,7 +369,7 @@ export default function SearchScreen() {
                 onPress={() => router.push(`/offer/${item.id}`)}
               >
                 <View style={styles.cardImageContainer}>
-                  <Image source={{ uri: item.image }} style={styles.cardImage} />
+                  <Image source={{ uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }} style={styles.cardImage} />
                   <View style={styles.brandOverlay}>
                      <Text style={styles.brandOverlayText}>{item.store.substring(0, 2)}</Text>
                   </View>

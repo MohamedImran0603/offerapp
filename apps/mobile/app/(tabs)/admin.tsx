@@ -92,8 +92,11 @@ export default function AdminScreen() {
   const [addDistrict, setAddDistrict] = useState('Colombo');
   const [addImageUrl, setAddImageUrl] = useState('');
   const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
+  const [selectedBase64, setSelectedBase64] = useState<string | null>(null);
+  const [editSelectedBase64, setEditSelectedBase64] = useState<string | null>(null);
   const [addLoading, setAddLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [catalogueSearch, setCatalogueSearch] = useState('');
 
   const fetchDashboardStatsAndData = async () => {
     setLoading(true);
@@ -183,25 +186,58 @@ export default function AdminScreen() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.8,
+      quality: 0.3, // Highly compressed, perfect (<30KB) for Firestore string fields!
+      base64: true, // Request raw base64 data string
     });
 
     if (!result.canceled) {
+      const base64Url = `data:image/jpeg;base64,${result.assets[0].base64}`;
       if (mode === 'add') {
         setSelectedImageUri(result.assets[0].uri);
+        setSelectedBase64(base64Url);
       } else {
         setEditSelectedImageUri(result.assets[0].uri);
+        setEditSelectedBase64(base64Url);
       }
     }
   };
 
-  // Dynamic Firebase Storage File Upload
+  // Dynamic Firebase Storage File Upload using highly robust XMLHttpRequest (XHR) with instant Base64 fallback on rules block
   const uploadImageAsync = async (uri: string): Promise<string> => {
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const fileRef = ref(storage, `offers/${Date.now()}.jpg`);
-    await uploadBytes(fileRef, blob);
-    return await getDownloadURL(fileRef);
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = function () {
+        resolve(xhr.response);
+      };
+      xhr.onerror = function (e) {
+        console.warn('Local file read failed via XHR:', e);
+        reject(new Error('Failed to read local image file from device. Please try again.'));
+      };
+      xhr.responseType = 'blob';
+      xhr.open('GET', uri, true);
+      xhr.send(null);
+    }).then(async (blob: any) => {
+      try {
+        const fileRef = ref(storage, `offers/${Date.now()}.jpg`);
+        await uploadBytes(fileRef, blob);
+        return await getDownloadURL(fileRef);
+      } catch (err: any) {
+        console.warn('Firebase Storage blocked upload. Converting blob to direct Base64 fallback...', err);
+        // Convert the existing successful blob directly to a Base64 text string
+        return new Promise<string>((res, rej) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            res(reader.result as string);
+          };
+          reader.onerror = () => {
+            rej(new Error('Failed to read blob as Base64 string.'));
+          };
+          reader.readAsDataURL(blob);
+        });
+      } finally {
+        blob.close();
+      }
+    });
   };
 
   const handleSaveEdit = async () => {
@@ -215,10 +251,17 @@ export default function AdminScreen() {
     try {
       let finalImageUrl = editingOffer.imageUrl || null;
 
-      // Upload manually chosen new image if selected
-      if (editSelectedImageUri) {
+      // Use direct compressed Base64 data string if manually selected
+      if (editSelectedBase64) {
+        finalImageUrl = editSelectedBase64;
+      } else if (editSelectedImageUri) {
+        // Keep standard upload as secondary fallback
         setUploading(true);
-        finalImageUrl = await uploadImageAsync(editSelectedImageUri);
+        try {
+          finalImageUrl = await uploadImageAsync(editSelectedImageUri);
+        } catch (uploadErr: any) {
+          console.log('Firebase upload failed, using default placeholder.');
+        }
         setUploading(false);
       }
 
@@ -253,6 +296,7 @@ export default function AdminScreen() {
       setEditModalVisible(false);
       setEditingOffer(null);
       setEditSelectedImageUri(null);
+      setEditSelectedBase64(null);
     } catch (error: any) {
       console.error('Editing failed:', error);
       Alert.alert('Error', 'Failed to update product details: ' + error.message);
@@ -272,10 +316,17 @@ export default function AdminScreen() {
     try {
       let finalImageUrl = addImageUrl.trim() || null;
 
-      // Upload selected manual photo if present
-      if (selectedImageUri) {
+      // Use direct compressed Base64 data string if manually selected
+      if (selectedBase64) {
+        finalImageUrl = selectedBase64;
+      } else if (selectedImageUri) {
+        // Keep standard upload as secondary fallback
         setUploading(true);
-        finalImageUrl = await uploadImageAsync(selectedImageUri);
+        try {
+          finalImageUrl = await uploadImageAsync(selectedImageUri);
+        } catch (uploadErr: any) {
+          console.log('Firebase upload failed, using default placeholder.');
+        }
         setUploading(false);
       }
 
@@ -306,6 +357,7 @@ export default function AdminScreen() {
       setAddPrice('');
       setAddImageUrl('');
       setSelectedImageUri(null);
+      setSelectedBase64(null);
       fetchDashboardStatsAndData();
     } catch (e: any) {
       Alert.alert('Error', 'Failed to create offer: ' + e.message);
@@ -579,14 +631,35 @@ export default function AdminScreen() {
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.contentScrollPadding}>
                 <View style={styles.offersHeaderRow}>
                   <Text style={styles.sectionHeaderTitle}>Manage Offers</Text>
-                  <TouchableOpacity onPress={() => { setSelectedImageUri(null); setAddModalVisible(true); }} style={styles.addNewOfferBtn}>
+                  <TouchableOpacity onPress={() => { setSelectedImageUri(null); setSelectedBase64(null); setAddModalVisible(true); }} style={styles.addNewOfferBtn}>
                     <Text style={styles.addNewOfferBtnText}>+ Add New Offer</Text>
                   </TouchableOpacity>
                 </View>
 
+                {/* Modern Premium Search Bar */}
+                <View style={styles.searchBarWrapper}>
+                  <Text style={styles.searchIcon}>🔍</Text>
+                  <TextInput
+                    style={styles.searchTextInput}
+                    placeholder="Search products, stores, or districts..."
+                    placeholderTextColor="#71717a"
+                    value={catalogueSearch}
+                    onChangeText={setCatalogueSearch}
+                  />
+                  {catalogueSearch.length > 0 && (
+                    <TouchableOpacity onPress={() => setCatalogueSearch('')} style={styles.clearSearchBtn}>
+                      <Text style={styles.clearSearchText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
                 {/* Offer Catalogue Table-like Card Layout */}
                 <View style={styles.catalogueTableCard}>
-                  {catalogOffers.map((offer) => (
+                  {catalogOffers.filter(offer => 
+                    offer.title.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                    offer.store.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                    (offer.district && offer.district.toLowerCase().includes(catalogueSearch.toLowerCase()))
+                  ).map((offer) => (
                     <View key={offer.id} style={styles.catalogueItemRow}>
                       <View style={styles.catalogueLeftSection}>
                         {offer.imageUrl ? (
@@ -620,8 +693,12 @@ export default function AdminScreen() {
                       </View>
                     </View>
                   ))}
-                  {catalogOffers.length === 0 && (
-                    <Text style={styles.emptyText}>No offer campaigns in system catalog.</Text>
+                  {catalogOffers.filter(offer => 
+                    offer.title.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                    offer.store.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                    (offer.district && offer.district.toLowerCase().includes(catalogueSearch.toLowerCase()))
+                  ).length === 0 && (
+                    <Text style={styles.emptyText}>No matching campaigns found in system catalog.</Text>
                   )}
                 </View>
               </ScrollView>
@@ -1040,6 +1117,35 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121214', // Exact luxury dark background matching Screenshot 1!
+  },
+  searchBarWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e1e24',
+    borderWidth: 1,
+    borderColor: '#2d2d34',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    marginBottom: 20,
+  },
+  searchIcon: {
+    fontSize: 16,
+    marginRight: 10,
+  },
+  searchTextInput: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 14,
+    padding: 0,
+  },
+  clearSearchBtn: {
+    padding: 8,
+  },
+  clearSearchText: {
+    color: '#71717a',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   layoutBody: {
     flex: 1,

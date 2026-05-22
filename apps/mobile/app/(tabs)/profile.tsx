@@ -125,7 +125,7 @@ export default function ProfileScreen() {
     { label: 'Refer & Earn', icon: 'share-social-outline', color: '#6b21a8', value: 'Earn Coins' },
     { label: 'Notifications', icon: 'notifications-outline', color: '#6b21a8', route: '/notifications' },
     { label: 'Help & Support', icon: 'help-circle-outline', color: '#6b21a8' },
-    { label: 'Language', icon: 'globe-outline', color: '#6b21a8', value: 'English' },
+    { label: 'My Cards', icon: 'card-outline', color: '#6b21a8', route: '/cards' },
   ];
 
   return (

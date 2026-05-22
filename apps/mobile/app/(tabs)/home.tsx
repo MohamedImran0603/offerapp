@@ -10,6 +10,7 @@ import { toggleFavorite, subscribeToFavorites } from '../../src/lib/userService'
 import { Ionicons } from '@expo/vector-icons';
 import { mockData, districts, mainCategories, brands } from '../../src/lib/mockData';
 import * as ImagePicker from 'expo-image-picker';
+import { useCart } from '../../src/lib/CartContext';
 
 const topTabs = [
   { name: 'Top pick', icon: '📢' },
@@ -32,6 +33,9 @@ export default function HomeScreen() {
     'Electronics': 1
   });
   const [lastSearchedTerm, setLastSearchedTerm] = useState('');
+  
+  const { items: cartItems } = useCart();
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   // Helper: extract the best (lowest) sale price from item's price fields
   const getSalePrice = (item: any): number => {
@@ -493,7 +497,15 @@ export default function HomeScreen() {
               <Ionicons name="chevron-down" size={12} color="#6b21a8" style={styles.districtChevron} />
             </TouchableOpacity>
           </View>
-          <View style={styles.headerRight}>
+          <View style={[styles.headerRight, { gap: 12 }]}>
+            <TouchableOpacity style={styles.notifyContainer} onPress={() => router.push('/CartScreen')}>
+              <Ionicons name="cart" size={28} color="#ea580c" />
+              {cartItemCount > 0 && (
+                <View style={[styles.notifyBadge, { backgroundColor: '#ea580c' }]}>
+                  <Text style={styles.notifyCount}>{cartItemCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity style={styles.notifyContainer}>
               <Ionicons name="notifications" size={28} color="#6b21a8" />
               <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
@@ -537,6 +549,8 @@ export default function HomeScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        {/* Dark Theme Header Section */}
+        <View style={styles.darkSection}>
         {/* Top Sub Tabs */}
         <View style={styles.topTabsRow}>
           {topTabs.map((tab, idx) => (
@@ -609,6 +623,7 @@ export default function HomeScreen() {
             );
           })}
         </ScrollView>
+        </View>
 
         {/* AI Personalized Picks Section */}
         {recommendedOffers.length > 0 && (
@@ -1157,11 +1172,11 @@ const styles = StyleSheet.create({
   },
   topTabText: {
     fontSize: 14,
-    color: '#4b5563',
+    color: '#e9d5ff',
     fontWeight: '500',
   },
   topTabTextActive: {
-    color: Colors.primary,
+    color: '#fbcfe8',
     fontWeight: 'bold',
   },
   categoryScroll: {
@@ -1174,8 +1189,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
-    backgroundColor: '#f9fafb',
+    borderColor: '#5b21b6',
+    backgroundColor: '#3b0764',
   },
   catBtnActive: {
     backgroundColor: Colors.primary,
@@ -1184,7 +1199,7 @@ const styles = StyleSheet.create({
   catBtnText: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#6b7280',
+    color: '#e9d5ff',
   },
   catBtnTextActive: {
     color: 'white',
@@ -1202,12 +1217,12 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#3b0764',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
     borderWidth: 2,
-    borderColor: '#f3f4f6',
+    borderColor: '#5b21b6',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1233,7 +1248,7 @@ const styles = StyleSheet.create({
   },
   brandName: {
     fontSize: 11,
-    color: '#6b7280',
+    color: '#e9d5ff',
     fontWeight: '500',
   },
   brandNameSelected: {
@@ -1398,11 +1413,25 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   pagesText: {
-    fontSize: 11,
-    color: '#9ca3af',
+    fontSize: 10,
+    color: '#6200EE',
+    fontWeight: '600',
   },
   daysText: {
-    fontSize: 11,
-    color: '#9ca3af',
-  }
+    fontSize: 10,
+    color: '#ea580c',
+    fontWeight: '600',
+  },
+  darkSection: {
+    backgroundColor: '#2e1065',
+    borderRadius: 24,
+    marginHorizontal: 12,
+    marginTop: 8,
+    paddingBottom: 16,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+  },
 });

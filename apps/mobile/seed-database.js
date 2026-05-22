@@ -225,7 +225,7 @@ const offers = [
 
   // CLOTHING
   {
-    title: 'Odel Summer Collection 2025',
+    title: 'Odel Summer Collection 2027',
     store: 'Odel',
     category: 'Clothing & Apparels',
     district: 'Colombo',

@@ -7,6 +7,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { toggleFavorite, addToShoppingList, subscribeToFavorites } from '../../src/lib/userService';
 import { mockData } from '../../src/lib/mockData';
 import PriceHistoryChart from '../../components/PriceHistoryChart';
+import { useCart } from '../../src/lib/CartContext';
 
 export default function OfferDetailsScreen() {
   const { id } = useLocalSearchParams();
@@ -54,10 +55,19 @@ export default function OfferDetailsScreen() {
     await toggleFavorite(offer.id, offer);
   };
 
+  const { items, addItem } = useCart();
+  const isAddedToCart = items.some(i => i.title === offer?.title);
+
   const handleAddToList = async () => {
     if (!offer) return;
     await addToShoppingList({ title: offer.title, price: getSalePrice(offer) });
-    Alert.alert("Success", "Added to your shopping list!");
+    addItem({
+      id: offer.id || Math.random().toString(),
+      title: offer.title,
+      price: getSalePrice(offer),
+      image: offer.image || offer.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500'
+    });
+    Alert.alert("Success", "Added to your cart and shopping list!");
   };
 
   // Helper: get the best (lowest) sale price from available price fields
@@ -167,7 +177,7 @@ export default function OfferDetailsScreen() {
            {/* Info Items */}
            <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>🕒</Text>
-              <Text style={styles.infoText}>Valid until 30 June 2025</Text>
+              <Text style={styles.infoText}>Valid until 30 June 2027</Text>
            </View>
            <View style={styles.infoRow}>
               <Text style={styles.infoIcon}>📍</Text>
@@ -196,8 +206,13 @@ export default function OfferDetailsScreen() {
 
       {/* Sticky Bottom Button */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.actionButton} onPress={handleAddToList}>
-          <Text style={styles.actionButtonText}>Add to shopping list</Text>
+        <TouchableOpacity 
+          style={[styles.actionButton, isAddedToCart && { backgroundColor: '#10b981' }]} 
+          onPress={isAddedToCart ? () => router.push('/CartScreen') : handleAddToList}
+        >
+          <Text style={styles.actionButtonText}>
+            {isAddedToCart ? '✓ Added to Cart (View)' : 'Add to shopping list'}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

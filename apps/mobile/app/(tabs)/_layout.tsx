@@ -1,7 +1,7 @@
 import { Tabs, useSegments, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
-import { Colors } from '../../src/constants/Colors';
 import { Text, View } from 'react-native';
+import { Colors } from '../../src/constants/Colors';
 import { auth, db } from '../../src/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import LoginScreen from './login';
@@ -48,78 +48,112 @@ export default function TabLayout() {
   }, [isAdmin, segments]);
 
   if (!user) {
-    return <LoginScreen />;
-  }
+  return <LoginScreen />;
+}
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: '#9ca3af',
+      <Tabs
+        screenOptions={{
+          tabBarActiveTintColor: Colors.primary,
+          tabBarInactiveTintColor: '#9ca3af',
 
-        tabBarStyle: {
-          backgroundColor: '#f3e8ff',
-          borderTopWidth: 1,
-          borderTopColor: '#e9d5ff',
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
-        },
-        headerShown: false,
-      }}>
-      <Tabs.Screen
-        name="home"
-        options={{
-          href: isAdmin ? null : '/home',
-          title: 'Home',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          href: isAdmin ? null : '/search',
-          title: 'Search',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔍</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="browse"
-        options={{
-          href: isAdmin ? null : '/browse',
-          title: 'Browse',
-          // Using a single tabBarIcon for the browse/category screen; you may customize the icon as needed.
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📖</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          href: null,
-          title: 'Account',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="saved"
-        options={{
-          href: isAdmin ? null : '/saved',
-          title: 'Saved',
-          tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>❤️</Text>,
-        }}
-      />
-      <Tabs.Screen
-        name="admin"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+          tabBarStyle: {
+            backgroundColor: '#f3e8ff',
+            borderTopWidth: 1,
+            borderTopColor: '#e9d5ff',
+            height: 60,
+            paddingBottom: 8,
+            paddingTop: 8,
+          },
+          headerShown: false,
+        }}>
+        <Tabs.Screen
+          name="home"
+          options={{
+            href: isAdmin ? null : '/home',
+            title: 'Home',
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🏠</Text>,
+          }}
+        />
+        <Tabs.Screen
+          name="search"
+          options={{
+            href: isAdmin ? null : '/search',
+            title: 'Search',
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>🔍</Text>,
+          }}
+        />
+        <Tabs.Screen
+          name="browse"
+          options={{
+            href: isAdmin ? null : '/browse',
+            title: 'Browse',
+            // Using a single tabBarIcon for the browse/category screen; you may customize the icon as needed.
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>📖</Text>,
+          }}
+        />
+        <Tabs.Screen
+          name="profile"
+          options={{
+            href: null,
+            title: 'Account',
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>👤</Text>,
+          }}
+        />
+        <Tabs.Screen
+          name="saved"
+          options={{
+            href: isAdmin ? null : '/saved',
+            title: 'Saved',
+            tabBarIcon: ({ color }) => <Text style={{ color, fontSize: 20 }}>❤️</Text>,
+          }}
+        />
+        <Tabs.Screen
+          name="admin"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="explore"
+          options={{
+            href: null,
+          }}
+        />
+        <Tabs.Screen
+          name="payment"
+          options={{
+            href: null,
+            title: 'Payment',
+          }}
+        />
+        <Tabs.Screen
+          name="CartScreen"
+          options={{
+            href: null,
+            title: 'Cart',
+          }}
+        />
+        <Tabs.Screen
+          name="cards"
+          options={{
+            href: null,
+            title: 'Cards',
+          }}
+        />
+        <Tabs.Screen
+          name="checkout"
+          options={{
+            href: null,
+            title: 'Checkout',
+          }}
+        />
+        <Tabs.Screen
+          name="login"
+          options={{
+            href: null,
+          }}
+        />
+      </Tabs>
   );
 }

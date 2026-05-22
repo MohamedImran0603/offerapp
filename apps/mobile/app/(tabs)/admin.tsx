@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, Modal, Alert, useWindowDimensions } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator, TextInput, ScrollView, Modal, Alert, useWindowDimensions, Platform } from 'react-native';
 import { collection, query, where, getDocs, doc, updateDoc, setDoc, addDoc, deleteDoc } from 'firebase/firestore';
 import { db, auth, storage } from '../../src/lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -367,40 +367,57 @@ export default function AdminScreen() {
     }
   };
 
-  const handleDeleteOffer = (item: Offer) => {
-    Alert.alert(
-      'Confirm Deletion',
-      `Are you sure you want to permanently delete this offer: "${item.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: '🗑️ Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, 'offers', item.id));
+  const handleDeleteOffer = async (item: Offer) => {
+    const executeDelete = async () => {
+      try {
+        await deleteDoc(doc(db, 'offers', item.id));
 
-              // Log deletion event
-              await addDoc(collection(db, 'auditLogs'), {
-                adminId: 'MOBILE_ROOT_ADMIN',
-                adminEmail: 'admin@offerlanka.com',
-                action: 'DELETE_OFFER',
-                targetId: item.id,
-                details: `Deleted offer campaign: "${item.title}" by ${item.store}`,
-                timestamp: new Date().toISOString()
-              });
+        // Log deletion event
+        await addDoc(collection(db, 'auditLogs'), {
+          adminId: 'MOBILE_ROOT_ADMIN',
+          adminEmail: 'admin@offerlanka.com',
+          action: 'DELETE_OFFER',
+          targetId: item.id,
+          details: `Deleted offer campaign: "${item.title}" by ${item.store}`,
+          timestamp: new Date().toISOString()
+        });
 
-              // Update local state instantly
-              setCatalogOffers((prev) => prev.filter((o) => o.id !== item.id));
-              setStats(prev => ({ ...prev, totalOffers: Math.max(0, prev.totalOffers - 1) }));
-              Alert.alert('Deleted', 'Offer has been successfully removed from catalog!');
-            } catch (e: any) {
-              Alert.alert('Error', 'Failed to delete: ' + e.message);
-            }
+        // Update local state instantly
+        setCatalogOffers((prev) => prev.filter((o) => o.id !== item.id));
+        setStats(prev => ({ ...prev, totalOffers: Math.max(0, prev.totalOffers - 1) }));
+        if (Platform.OS === 'web') {
+           window.alert('Offer has been successfully removed from catalog!');
+        } else {
+           Alert.alert('Deleted', 'Offer has been successfully removed from catalog!');
+        }
+      } catch (e: any) {
+        if (Platform.OS === 'web') {
+           window.alert('Failed to delete: ' + e.message);
+        } else {
+           Alert.alert('Error', 'Failed to delete: ' + e.message);
+        }
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`Are you sure you want to permanently delete this offer: "${item.title}"?`);
+      if (confirmed) {
+        await executeDelete();
+      }
+    } else {
+      Alert.alert(
+        'Confirm Deletion',
+        `Are you sure you want to permanently delete this offer: "${item.title}"?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: '🗑️ Delete',
+            style: 'destructive',
+            onPress: executeDelete,
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleOnboardSubmit = async () => {

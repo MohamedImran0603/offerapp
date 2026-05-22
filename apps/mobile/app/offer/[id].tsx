@@ -56,8 +56,21 @@ export default function OfferDetailsScreen() {
 
   const handleAddToList = async () => {
     if (!offer) return;
-    await addToShoppingList({ title: offer.title, price: offer.newPrice || offer.price || 0 });
+    await addToShoppingList({ title: offer.title, price: getSalePrice(offer) });
     Alert.alert("Success", "Added to your shopping list!");
+  };
+
+  // Helper: get the best (lowest) sale price from available price fields
+  const getSalePrice = (item: any): number => {
+    if (item.newPrice && item.newPrice > 0) return item.newPrice;
+    if (item.price && item.price > 0) return item.price;
+    if (item.offerPrices && typeof item.offerPrices === 'object') {
+      const prices = Object.values(item.offerPrices) as number[];
+      const validPrices = prices.filter((p: number) => p > 0);
+      if (validPrices.length > 0) return Math.min(...validPrices);
+    }
+    if (item.oldPrice && item.oldPrice > 0) return Math.round(item.oldPrice * 0.85);
+    return 0;
   };
 
 
@@ -135,15 +148,15 @@ export default function OfferDetailsScreen() {
            <View style={styles.priceContainer}>
               <View>
                  <Text style={styles.priceLabel}>Rs.</Text>
-                 <Text style={styles.newPrice}>{(offer.newPrice || offer.price || 0).toLocaleString()}</Text>
+                 <Text style={styles.newPrice}>{getSalePrice(offer).toLocaleString()}</Text>
               </View>
-              {(offer.oldPrice || offer.originalPrice) && (
+              {(offer.oldPrice || offer.originalPrice) && getSalePrice(offer) < (offer.oldPrice || offer.originalPrice) && (
                 <Text style={styles.oldPrice}>Rs. {(offer.oldPrice || offer.originalPrice).toLocaleString()}</Text>
               )}
-              {(offer.oldPrice || offer.originalPrice) && (
+              {(offer.oldPrice || offer.originalPrice) && getSalePrice(offer) < (offer.oldPrice || offer.originalPrice) && (
                 <View style={styles.savingsBadge}>
                    <Text style={styles.savingsText}>
-                     Save Rs. {((offer.oldPrice || offer.originalPrice) - (offer.newPrice || offer.price || 0)).toLocaleString()}
+                     Save Rs. {((offer.oldPrice || offer.originalPrice) - getSalePrice(offer)).toLocaleString()}
                    </Text>
                 </View>
               )}
@@ -167,7 +180,7 @@ export default function OfferDetailsScreen() {
 
            {/* Price History Section */}
             <PriceHistoryChart 
-              currentPrice={offer.newPrice || offer.price || 0} 
+              currentPrice={getSalePrice(offer)} 
               oldPrice={offer.oldPrice} 
               title={offer.title} 
             />

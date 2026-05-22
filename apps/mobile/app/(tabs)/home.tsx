@@ -31,6 +31,28 @@ export default function HomeScreen() {
     'Food - Grocery': 2,
     'Electronics': 1
   });
+  const [lastSearchedTerm, setLastSearchedTerm] = useState('');
+
+  // Helper: extract the best (lowest) sale price from item's price fields
+  const getSalePrice = (item: any): number => {
+    if (item.newPrice && item.newPrice > 0) return item.newPrice;
+    if (item.price && item.price > 0) return item.price;
+    if (item.offerPrices && typeof item.offerPrices === 'object') {
+      const prices = Object.values(item.offerPrices) as number[];
+      const validPrices = prices.filter(p => p > 0);
+      if (validPrices.length > 0) return Math.min(...validPrices);
+    }
+    if (item.oldPrice && item.oldPrice > 0) return Math.round(item.oldPrice * 0.85);
+    return 0;
+  };
+
+  const getDiscountPct = (item: any): number => {
+    const sale = getSalePrice(item);
+    if (item.oldPrice && sale && sale < item.oldPrice) {
+      return Math.round(((item.oldPrice - sale) / item.oldPrice) * 100);
+    }
+    return 15;
+  };
 
   const recommendedOffers = (offers.length > 0 ? offers : mockData)
     .filter(o => clickedCategories[o.category] && clickedCategories[o.category] > 0)
@@ -44,6 +66,61 @@ export default function HomeScreen() {
     }));
     router.push(`/offer/${item.id}`);
   };
+
+  const handleSearchSubmit = (term: string) => {
+    if (!term || term.trim() === '') return;
+    const trimmed = term.trim();
+    
+    const availableOffers = offers.length > 0 ? offers : mockData;
+    const matching = availableOffers.filter(o => 
+      (o.title || '').toLowerCase().includes(trimmed.toLowerCase()) ||
+      (o.store || '').toLowerCase().includes(trimmed.toLowerCase()) ||
+      (o.category || '').toLowerCase().includes(trimmed.toLowerCase())
+    );
+
+    if (matching.length > 0) {
+      const categoryCounts: { [key: string]: number } = {};
+      matching.forEach(o => {
+        if (o.category) {
+          categoryCounts[o.category] = (categoryCounts[o.category] || 0) + 1;
+        }
+      });
+
+      let bestCategory = '';
+      let maxCount = 0;
+      Object.keys(categoryCounts).forEach(cat => {
+        if (categoryCounts[cat] > maxCount) {
+          maxCount = categoryCounts[cat];
+          bestCategory = cat;
+        }
+      });
+
+      if (bestCategory) {
+        setClickedCategories(prev => {
+          const currentMax = Math.max(...Object.values(prev), 2);
+          return {
+            ...prev,
+            [bestCategory]: currentMax + 3
+          };
+        });
+      }
+    }
+    
+    setLastSearchedTerm(trimmed);
+  };
+
+  useEffect(() => {
+    if (!search || search.trim() === '') {
+      return;
+    }
+    
+    const delayDebounce = setTimeout(() => {
+      handleSearchSubmit(search);
+    }, 600);
+    
+    return () => clearTimeout(delayDebounce);
+  }, [search]);
+
   const [activeTopTab, setActiveTopTab] = useState('Top pick');
   const [selectedDistrict, setSelectedDistrict] = useState('Whole Country');
   const [isDistrictModalVisible, setDistrictModalVisible] = useState(false);
@@ -422,7 +499,7 @@ export default function HomeScreen() {
               <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
             </TouchableOpacity>
             {currentUser ? (
-              <TouchableOpacity style={styles.loginBtn}>
+              <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/profile')}>
                 <Ionicons name="person-circle" size={16} color="#fff" style={{ marginRight: 6 }} />
                 <Text style={styles.loginBtnText}>{currentUser.username}</Text>
               </TouchableOpacity>
@@ -442,6 +519,8 @@ export default function HomeScreen() {
               style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
+              onSubmitEditing={() => handleSearchSubmit(search)}
+              returnKeyType="search"
             />
             <TouchableOpacity
               onPress={handleCameraPress}
@@ -451,7 +530,7 @@ export default function HomeScreen() {
               <Ionicons name="camera-outline" size={26} color="#6b21a8" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.searchBtn}>
+          <TouchableOpacity style={styles.searchBtn} onPress={() => handleSearchSubmit(search)}>
             <Text style={styles.searchBtnText}>Search</Text>
           </TouchableOpacity>
         </View>
@@ -536,7 +615,9 @@ export default function HomeScreen() {
           <View style={styles.recSection}>
             <View style={styles.recHeaderRow}>
               <Text style={styles.recSectionTitle}>🧠 AI Picks For You</Text>
-              <Text style={styles.recSectionSub}>Based on your behavior</Text>
+              <Text style={styles.recSectionSub}>
+                {lastSearchedTerm ? `Inspired by your search for "${lastSearchedTerm}"` : 'Based on your behavior'}
+              </Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recScroll}>
               {recommendedOffers.map((item) => (
@@ -549,7 +630,10 @@ export default function HomeScreen() {
                   <View style={styles.recCardContent}>
                     <Text style={styles.recCardStore}>{item.store}</Text>
                     <Text style={styles.recCardTitle} numberOfLines={1}>{item.title}</Text>
-                    <Text style={styles.recCardPrice}>Rs. {(item.newPrice || item.price || 0).toLocaleString()}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                      <Text style={styles.recCardPrice}>Rs. {getSalePrice(item).toLocaleString()}</Text>
+                      {item.oldPrice > 0 && <Text style={{ fontSize: 9, color: '#9ca3af', textDecorationLine: 'line-through' }}>Rs. {item.oldPrice.toLocaleString()}</Text>}
+                    </View>
                   </View>
                 </TouchableOpacity>
               ))}
@@ -581,7 +665,7 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.rightBadge}>
                     <Text style={styles.rightBadgeText}>
-                      {item.oldPrice && item.newPrice ? Math.round(((item.oldPrice - item.newPrice) / item.oldPrice) * 100) : 15}% OFF
+                      {getDiscountPct(item)}% OFF
                     </Text>
                   </View>
                 </View>
@@ -590,7 +674,12 @@ export default function HomeScreen() {
                   <Text style={styles.cardCategory}>{item.category}</Text>
                   <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
                   <Text style={styles.cardSubTitle} numberOfLines={1}>{item.subTitle}</Text>
-                  <Text style={styles.cardPrice}>Rs. {(item.oldPrice || 0).toLocaleString()}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.cardPrice}>Rs. {getSalePrice(item).toLocaleString()}</Text>
+                    {item.oldPrice > 0 && getSalePrice(item) < item.oldPrice && (
+                      <Text style={{ fontSize: 11, color: '#9ca3af', textDecorationLine: 'line-through' }}>Rs. {item.oldPrice.toLocaleString()}</Text>
+                    )}
+                  </View>
                   <View style={styles.flyerFooter}>
                     <Text style={styles.pagesText}>+{item.pages || 12} Pages</Text>
                     <Text style={styles.daysText}>+{item.daysLeft || 3} Days left</Text>

@@ -3,10 +3,12 @@ import { View, Text, SafeAreaView, StyleSheet, TouchableOpacity, Switch, ScrollV
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/Colors';
 import { subscribeToFavorites } from '../../src/lib/userService';
-import { auth, db } from '../../src/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { auth, db, storage } from '../../src/lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -14,6 +16,7 @@ export default function ProfileScreen() {
   const [savedCount, setSavedCount] = useState(0);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     const unsub = subscribeToFavorites((favs) => {
@@ -44,6 +47,78 @@ export default function ProfileScreen() {
     };
   }, []);
 
+  const pickImage = async () => {
+    if (!currentUser) return;
+    
+    try {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const uri = result.assets[0].uri;
+        
+        // Show local preview immediately
+        setCurrentUser((prev: any) => ({ ...prev, profilePic: uri }));
+        setIsUploadingImage(true);
+        
+        try {
+          const response = await fetch(uri);
+          const blob = await response.blob();
+          
+          const uploadTask = async () => {
+            // Upload to Firebase Storage
+            const imageRef = ref(storage, `profilePics/${currentUser.uid}-${Date.now()}`);
+            await uploadBytes(imageRef, blob);
+            const downloadURL = await getDownloadURL(imageRef);
+            
+            // Update Firestore with remote URL
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { profilePic: downloadURL });
+            
+            // Update local state with remote URL
+            setCurrentUser((prev: any) => ({ ...prev, profilePic: downloadURL }));
+          };
+
+          // Race the upload against a 5-second timeout
+          await Promise.race([
+            uploadTask(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Upload timeout")), 5000))
+          ]);
+        } catch (uploadError) {
+          console.error("Error uploading image:", uploadError);
+          // Keep the local preview even if upload fails
+        } finally {
+          setIsUploadingImage(false);
+        }
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      alert("Failed to pick image. Please try again.");
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      alert('Failed to sign out');
+    }
+  };
+
+  const handleMenuPress = (item: any) => {
+    if (item.route) {
+      router.push(item.route);
+    } else {
+      alert(`${item.label} feature is coming soon!`);
+    }
+  };
+
   const menuItems = [
     { label: 'Followed Stores', icon: 'storefront-outline', color: '#6b21a8', value: '12' },
     { label: 'My Transactions', icon: 'receipt-outline', color: '#6b21a8' },
@@ -71,10 +146,24 @@ export default function ProfileScreen() {
             <ActivityIndicator size="large" color="#ffffff" />
           </View>
         ) : (
-          <TouchableOpacity style={styles.profileCard}>
+          <TouchableOpacity style={styles.profileCard} onPress={pickImage}>
             <View style={styles.profileInfoRow}>
               <View style={styles.avatar}>
-                <Ionicons name="person" size={32} color="#ccc" />
+                <View style={styles.avatarImageWrapper}>
+                  {currentUser?.profilePic ? (
+                    <Image source={{ uri: currentUser.profilePic }} style={{ width: 64, height: 64, borderRadius: 32 }} />
+                  ) : (
+                    <Ionicons name="person" size={32} color="#ccc" />
+                  )}
+                  {isUploadingImage && (
+                    <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,255,255,0.7)', justifyContent: 'center', alignItems: 'center' }]}>
+                      <ActivityIndicator size="small" color="#6b21a8" />
+                    </View>
+                  )}
+                </View>
+                <View style={styles.cameraIconBadge}>
+                  <Ionicons name="camera" size={12} color="#fff" />
+                </View>
               </View>
               <View style={styles.profileDetails}>
                 <Text style={styles.profileName}>{currentUser?.username || 'Guest'}</Text>
@@ -142,7 +231,7 @@ export default function ProfileScreen() {
             <TouchableOpacity 
               key={idx} 
               style={styles.menuItem}
-              onPress={() => item.route && router.push(item.route as any)}
+              onPress={() => handleMenuPress(item)}
             >
               <Ionicons name={item.icon as any} size={20} color={item.color} style={styles.menuIcon} />
               <Text style={styles.menuLabel}>{item.label}</Text>
@@ -167,7 +256,7 @@ export default function ProfileScreen() {
         {/* Sign Out Button */}
         <TouchableOpacity 
           style={styles.signOutBtn}
-          onPress={() => router.replace('/login')}
+          onPress={handleSignOut}
         >
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
@@ -213,10 +302,30 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
+    marginRight: 16,
+    position: 'relative',
+  },
+  avatarImageWrapper: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    overflow: 'hidden',
+  },
+  cameraIconBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   profileDetails: {
     flex: 1,

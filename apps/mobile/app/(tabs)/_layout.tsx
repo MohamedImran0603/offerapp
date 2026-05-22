@@ -1,17 +1,20 @@
 import { Tabs, useSegments, useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { Colors } from '../../src/constants/Colors';
-import { Text } from 'react-native';
+import { Text, View } from 'react-native';
 import { auth, db } from '../../src/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import LoginScreen from './login';
 
 export default function TabLayout() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState(null);
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      setUser(user);
       if (user) {
         try {
           const adminDoc = await getDoc(doc(db, 'admins', user.uid));
@@ -29,9 +32,9 @@ export default function TabLayout() {
         setIsAdmin(false);
       }
     });
-
     return () => unsubscribe();
   }, []);
+
 
   // Enforce active administrator containment bounds on tab navigations / back button actions
   useEffect(() => {
@@ -44,6 +47,10 @@ export default function TabLayout() {
     }
   }, [isAdmin, segments]);
 
+  if (!user) {
+    return <LoginScreen />;
+  }
+
   return (
     <Tabs
       screenOptions={{
@@ -51,8 +58,9 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#9ca3af',
 
         tabBarStyle: {
+          backgroundColor: '#f3e8ff',
           borderTopWidth: 1,
-          borderTopColor: '#f3f4f6',
+          borderTopColor: '#e9d5ff',
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,

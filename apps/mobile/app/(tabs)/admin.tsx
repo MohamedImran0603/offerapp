@@ -655,15 +655,15 @@ export default function AdminScreen() {
 
                 {/* Offer Catalogue Table-like Card Layout */}
                 <View style={styles.catalogueTableCard}>
-                  {catalogOffers.filter(offer => 
-                    offer.title.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
-                    offer.store.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                  {catalogOffers.filter(offer =>
+                    (offer.title || '').toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                    (offer.store || '').toLowerCase().includes(catalogueSearch.toLowerCase()) ||
                     (offer.district && offer.district.toLowerCase().includes(catalogueSearch.toLowerCase()))
                   ).map((offer) => (
                     <View key={offer.id} style={styles.catalogueItemRow}>
                       <View style={styles.catalogueLeftSection}>
                         {offer.imageUrl ? (
-                          <Image source={{ uri: offer.imageUrl }} style={styles.catalogOfferImg} />
+                           <Image source={{ uri: offer.imageUrl }} style={styles.catalogOfferImg} />
                         ) : (
                           <View style={styles.catalogOfferImgPlaceholder}>
                             <Text style={{ fontSize: 10, color: '#6b7280' }}>No Img</Text>
@@ -693,9 +693,9 @@ export default function AdminScreen() {
                       </View>
                     </View>
                   ))}
-                  {catalogOffers.filter(offer => 
-                    offer.title.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
-                    offer.store.toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                  {catalogOffers.filter(offer =>
+                    (offer.title || '').toLowerCase().includes(catalogueSearch.toLowerCase()) ||
+                    (offer.store || '').toLowerCase().includes(catalogueSearch.toLowerCase()) ||
                     (offer.district && offer.district.toLowerCase().includes(catalogueSearch.toLowerCase()))
                   ).length === 0 && (
                     <Text style={styles.emptyText}>No matching campaigns found in system catalog.</Text>

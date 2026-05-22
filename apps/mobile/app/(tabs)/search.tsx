@@ -132,9 +132,9 @@ export default function SearchScreen() {
       
       if (keywordToUse && keywordToUse.trim() !== '') {
         matchedProduct = availableOffers.find(o => 
-          o.title.toLowerCase().includes(keywordToUse.toLowerCase()) || 
-          o.store.toLowerCase().includes(keywordToUse.toLowerCase()) ||
-          o.category.toLowerCase().includes(keywordToUse.toLowerCase())
+          (o.title || '').toLowerCase().includes(keywordToUse.toLowerCase()) || 
+          (o.store || '').toLowerCase().includes(keywordToUse.toLowerCase()) ||
+          (o.category || '').toLowerCase().includes(keywordToUse.toLowerCase())
         );
       } 
       
@@ -157,9 +157,9 @@ export default function SearchScreen() {
         // AI Simulation: If no keyword provided, intelligently "guess" a high-quality product 
         // We prioritize popular tech items like iPhone/Samsung to make the demo feel "Real AI"
         const popularProducts = availableOffers.filter(o => 
-          o.title.toLowerCase().includes('iphone') || 
-          o.title.toLowerCase().includes('samsung') || 
-          o.title.toLowerCase().includes('sony')
+          (o.title || '').toLowerCase().includes('iphone') || 
+          (o.title || '').toLowerCase().includes('samsung') || 
+          (o.title || '').toLowerCase().includes('sony')
         );
         
         if (popularProducts.length > 0) {
@@ -191,9 +191,9 @@ export default function SearchScreen() {
   const isFavorited = (id: string) => favorites.some(f => f.id === id);
 
   const filteredOffers = offers.filter(offer => 
-    offer.title.toLowerCase().includes(search.toLowerCase()) || 
-    offer.store.toLowerCase().includes(search.toLowerCase()) ||
-    offer.category.toLowerCase().includes(search.toLowerCase())
+    (offer.title || '').toLowerCase().includes(search.toLowerCase()) || 
+    (offer.store || '').toLowerCase().includes(search.toLowerCase()) ||
+    (offer.category || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (

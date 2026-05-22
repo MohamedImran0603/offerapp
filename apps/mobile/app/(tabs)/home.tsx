@@ -2,8 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, SafeAreaView, TextInput, ScrollView, TouchableOpacity, Image, StyleSheet, ActivityIndicator, Modal, FlatList, Animated, Easing, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/Colors';
-import { db } from '../../src/lib/firebase';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { db, auth } from '../../src/lib/firebase';
+import { collection, query, onSnapshot, orderBy, doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { seedDatabase } from '../../src/lib/seedData';
 import { toggleFavorite, subscribeToFavorites } from '../../src/lib/userService';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,6 +24,7 @@ export default function HomeScreen() {
   const [favorites, setFavorites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [activeBrand, setActiveBrand] = useState('ALL');
   const [clickedCategories, setClickedCategories] = useState<{ [key: string]: number }>({
@@ -57,6 +59,24 @@ export default function HomeScreen() {
   useEffect(() => {
     seedDatabase();
 
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setCurrentUser({ uid: user.uid, ...userDoc.data() });
+          } else {
+            setCurrentUser({ uid: user.uid, username: user.email?.split('@')[0] || 'User' });
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setCurrentUser({ uid: user.uid, username: user.email?.split('@')[0] || 'User' });
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
     const q = query(collection(db, 'offers'), orderBy('createdAt', 'desc'));
     const unsubscribeOffers = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -74,6 +94,7 @@ export default function HomeScreen() {
     return () => {
       unsubscribeOffers();
       unsubscribeFavs();
+      unsubscribeAuth();
     };
   }, []);
 
@@ -158,9 +179,9 @@ export default function HomeScreen() {
 
       if (keywordToUse && keywordToUse.trim() !== '') {
         matchedProduct = availableOffers.find(o =>
-          o.title.toLowerCase().includes(keywordToUse.toLowerCase()) ||
-          o.category.toLowerCase().includes(keywordToUse.toLowerCase()) ||
-          o.store.toLowerCase().includes(keywordToUse.toLowerCase())
+          (o.title || '').toLowerCase().includes(keywordToUse.toLowerCase()) ||
+          (o.category || '').toLowerCase().includes(keywordToUse.toLowerCase()) ||
+          (o.store || '').toLowerCase().includes(keywordToUse.toLowerCase())
         );
       }
 
@@ -183,9 +204,9 @@ export default function HomeScreen() {
         // AI Simulation: If no keyword provided, intelligently "guess" a high-quality product 
         // We prioritize popular tech items like iPhone/Samsung to make the demo feel "Real AI"
         const popularProducts = availableOffers.filter(o =>
-          o.title.toLowerCase().includes('iphone') ||
-          o.title.toLowerCase().includes('samsung') ||
-          o.title.toLowerCase().includes('sony')
+          (o.title || '').toLowerCase().includes('iphone') ||
+          (o.title || '').toLowerCase().includes('samsung') ||
+          (o.title || '').toLowerCase().includes('sony')
         );
 
         if (popularProducts.length > 0) {
@@ -217,11 +238,22 @@ export default function HomeScreen() {
 
   const filteredOffers = offers.filter(offer => {
     const matchesCategory = activeCategory === 'ALL' || offer.category === activeCategory;
-    const matchesBrand = activeBrand === 'ALL' || offer.store.toLowerCase() === activeBrand.toLowerCase();
-    const matchesSearch = offer.title.toLowerCase().includes(search.toLowerCase()) ||
-      offer.store.toLowerCase().includes(search.toLowerCase());
+    const matchesBrand = activeBrand === 'ALL' || (offer.store || '').toLowerCase() === activeBrand.toLowerCase();
+    const matchesSearch = (offer.title || '').toLowerCase().includes(search.toLowerCase()) ||
+      (offer.store || '').toLowerCase().includes(search.toLowerCase());
     const matchesDistrict = selectedDistrict === 'Whole Country' || offer.district === selectedDistrict;
     return matchesCategory && matchesBrand && matchesSearch && matchesDistrict;
+  });
+
+  // Limit to 2 items per category for a concise showcase
+  const limitedOffers: typeof filteredOffers = [];
+  const categoryCount: Record<string, number> = {};
+  filteredOffers.forEach(item => {
+    const cat = item.category;
+    if ((categoryCount[cat] ?? 0) < 2) {
+      limitedOffers.push(item);
+      categoryCount[cat] = (categoryCount[cat] ?? 0) + 1;
+    }
   });
 
   return (
@@ -381,17 +413,24 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.districtSelector} onPress={() => setDistrictModalVisible(true)}>
               <Ionicons name="location" size={14} color="#ef4444" />
               <Text style={styles.districtText}>{selectedDistrict}</Text>
-              <Ionicons name="chevron-down" size={12} color="#d1d5db" style={styles.districtChevron} />
+              <Ionicons name="chevron-down" size={12} color="#6b21a8" style={styles.districtChevron} />
             </TouchableOpacity>
           </View>
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.notifyContainer}>
-              <Ionicons name="notifications" size={28} color="#fbbf24" />
+              <Ionicons name="notifications" size={28} color="#6b21a8" />
               <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.loginBtn}>
-              <Text style={styles.loginBtnText}>Login/Register</Text>
-            </TouchableOpacity>
+            {currentUser ? (
+              <TouchableOpacity style={styles.loginBtn}>
+                <Ionicons name="person-circle" size={16} color="#fff" style={{ marginRight: 6 }} />
+                <Text style={styles.loginBtnText}>{currentUser.username}</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
+                <Text style={styles.loginBtnText}>Login/Register</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -523,14 +562,14 @@ export default function HomeScreen() {
           <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 40 }} />
         ) : (
           <View style={styles.grid}>
-            {filteredOffers.map((item) => (
+            <Text style={styles.totalCount}>Showing {limitedOffers.length} items</Text>
+            {limitedOffers.map((item) => (
               <TouchableOpacity
                 key={item.id}
                 style={styles.card}
                 onPress={() => router.push(`/offer/${item.id}`)}
               >
                 <View style={styles.cardImageContainer}>
-
                   <Image source={{ uri: item.image || item.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' }} style={styles.cardImage} />
                   <View style={styles.leftBadge}>
                     <Text style={styles.leftBadgeText}>
@@ -548,8 +587,10 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.cardContent}>
                   <Text style={styles.cardStore}>{item.store}</Text>
+                  <Text style={styles.cardCategory}>{item.category}</Text>
                   <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
                   <Text style={styles.cardSubTitle} numberOfLines={1}>{item.subTitle}</Text>
+                  <Text style={styles.cardPrice}>Rs. {(item.oldPrice || 0).toLocaleString()}</Text>
                   <View style={styles.flyerFooter}>
                     <Text style={styles.pagesText}>+{item.pages || 12} Pages</Text>
                     <Text style={styles.daysText}>+{item.daysLeft || 3} Days left</Text>
@@ -575,7 +616,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#faf5ff',
   },
   recSection: {
     marginVertical: 16,
@@ -840,7 +881,7 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   header: {
-    backgroundColor: '#111827',
+    backgroundColor: '#f3e8ff',
     padding: 16,
     paddingTop: 40,
   },
@@ -861,7 +902,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   brandTitle: {
-    color: 'white',
+    color: '#4c1d95',
     fontSize: 20,
     fontWeight: 'bold',
   },
@@ -872,7 +913,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   districtText: {
-    color: '#d1d5db',
+    color: '#6b21a8',
     fontSize: 12,
     fontWeight: '500',
   },
@@ -923,6 +964,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   loginBtnText: {
     color: 'white',
@@ -1228,10 +1271,30 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 4,
   },
+  totalCount: {
+    fontSize: 14,
+    color: '#a1a1aa',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
   cardTitle: {
     fontSize: 14,
     color: '#4b5563',
     fontWeight: '500',
+  },
+  cardCategory: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#6200EE',
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  cardPrice: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#059669',
+    marginTop: 4,
+    marginBottom: 4,
   },
   cardSubTitle: {
     fontSize: 12,

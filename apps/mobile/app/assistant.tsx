@@ -75,7 +75,7 @@ export default function AssistantScreen() {
       let matchedOffers: any[] = [];
 
       if (query.includes('iphone')) {
-        matchedOffers = allOffers.filter(o => o.title.toLowerCase().includes('iphone'));
+        matchedOffers = allOffers.filter(o => (o.title || '').toLowerCase().includes('iphone'));
         if (matchedOffers.length > 0) {
           // Sort by price
           matchedOffers.sort((a, b) => (a.newPrice || a.price || 0) - (b.newPrice || b.price || 0));
@@ -86,7 +86,7 @@ export default function AssistantScreen() {
         }
       } else if (query.includes('keells') || query.includes('grocery') || query.includes('cargills') || query.includes('glomark')) {
         const storeMatch = query.includes('keells') ? 'keells' : query.includes('cargills') ? 'cargills' : 'glomark';
-        matchedOffers = allOffers.filter(o => o.store.toLowerCase().includes(storeMatch));
+        matchedOffers = allOffers.filter(o => (o.store || '').toLowerCase().includes(storeMatch));
         if (matchedOffers.length > 0) {
           responseText = `🛒 I found ${matchedOffers.length} discount offers at ${storeMatch.charAt(0).toUpperCase() + storeMatch.slice(1)}. Here are some highly rated ones:`;
           matchedOffers = matchedOffers.slice(0, 3); // Top 3
@@ -110,8 +110,8 @@ export default function AssistantScreen() {
       } else {
         // General search
         matchedOffers = allOffers.filter(o => 
-          o.title.toLowerCase().includes(query) || 
-          o.category.toLowerCase().includes(query)
+          (o.title || '').toLowerCase().includes(query) || 
+          (o.category || '').toLowerCase().includes(query)
         );
         if (matchedOffers.length > 0) {
           responseText = `🔍 I found matching offers for your query "${inputText}":`;

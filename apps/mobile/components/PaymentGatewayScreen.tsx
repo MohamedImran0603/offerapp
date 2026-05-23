@@ -1,497 +1,532 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  useColorScheme,
-  Animated,
-  Easing,
-  Modal,
   TextInput,
   Dimensions,
+  Image,
+  Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5, Foundation } from '@expo/vector-icons';
 import { useCart } from '../src/lib/CartContext';
+import { validateCardNumber, validateCVV, validateExpiry, validateWallet } from '../src/lib/paymentValidation';
 
-/* ──────────────────────────────────────────────
-   DATA
-   ────────────────────────────────────────────── */
+const { width } = Dimensions.get('window');
 
-const SRI_LANKAN_BANKS = [
-  'Commercial Bank', 'Sampath Bank', 'HNB', "People's Bank", 'Bank of Ceylon',
-  'Seylan Bank', 'NDB Bank', 'Nations Trust Bank', 'DFCC Bank', 'Pan Asia Bank',
-  'Union Bank', 'Cargills Bank', 'Amana Bank', 'LOLC Finance',
-  'Hatton National Bank', 'HSBC Sri Lanka', 'Standard Chartered Sri Lanka',
-  'NSB', 'Regional Development Bank',
+const WALLETS = [
+  { id: 'mcash', name: 'mCash', sub: 'Pay using mCash Wallet', icon: 'cellphone-nfc', color: '#0ea5e9' },
+  { id: 'ezcash', name: 'eZ Cash', sub: 'Pay using eZ Cash Wallet', icon: 'wallet', color: '#eab308' },
+  { id: 'frimi', name: 'Frimi', sub: 'Pay using Frimi Wallet', icon: 'alpha-f-circle', color: '#ec4899' },
+  { id: 'genie', name: 'Genie', sub: 'Pay using Genie Wallet', icon: 'magic-staff', color: '#10b981' },
 ];
 
-const SRI_LANKAN_WALLETS = [
-  'Frimi', 'Genie', 'eZ Cash', 'mCash', 'OnePay', 'PayHere',
+const BANKS = [
+  { id: 'combank', name: 'Commercial Bank', icon: 'bank', color: '#3b82f6' },
+  { id: 'sampath', name: 'Sampath Bank', icon: 'bank-outline', color: '#f97316' },
+  { id: 'hnb', name: 'HNB', icon: 'bank', color: '#eab308' },
+  { id: 'boc', name: 'BOC', icon: 'bank-circle-outline', color: '#eab308' },
+  { id: 'peoples', name: "People's Bank", icon: 'bank', color: '#eab308' },
 ];
 
-const PAYMENT_METHODS = [
-  { key: 'visa',       label: 'Visa',              icon: 'card',               lib: 'Ionicons' },
-  { key: 'mastercard', label: 'Mastercard',         icon: 'credit-card',        lib: 'FontAwesome5' },
-  { key: 'debit',      label: 'Debit Card',         icon: 'card-outline',       lib: 'Ionicons' },
-  { key: 'qr',         label: 'QR Payment',         icon: 'qr-code',           lib: 'MaterialIcons' },
-  { key: 'wallet',     label: 'Mobile Wallet',      icon: 'wallet',             lib: 'Ionicons' },
-  { key: 'bank',       label: 'Internet Banking',   icon: 'bank',              lib: 'MaterialCommunityIcons' },
-  { key: 'emi',        label: 'EMI Installments',   icon: 'calendar-outline',   lib: 'Ionicons' },
-  { key: 'cash',       label: 'Cash on Delivery',   icon: 'cash',              lib: 'Ionicons' },
-  { key: 'crypto',     label: 'Crypto Pay',         icon: 'logo-bitcoin',       lib: 'Ionicons' },
-] as const;
-
-const MOCK_TRANSACTIONS = [
-  { id: '1', title: 'Keells Super',      date: 'Today, 2:15 PM',    method: 'Visa •4287',       amount: -3450,   cashback: 103, icon: 'cart' },
-  { id: '2', title: 'Frimi Topup',       date: 'Yesterday, 6:30 PM',method: 'Wallet',           amount: 5000,    cashback: 0,   icon: 'wallet' },
-  { id: '3', title: 'Apollo Hospital',   date: '20 May',            method: 'Net Banking',      amount: -12800,  cashback: 0,   icon: 'medkit' },
-  { id: '4', title: 'Cashback Credited', date: '19 May',            method: 'HNB Promotion',    amount: 500,     cashback: 0,   icon: 'gift' },
-];
-
-/* ──────────────────────────────────────────────
-   COMPONENT
-   ────────────────────────────────────────────── */
+const EXPIRY_OPTIONS = Array.from({length: 120}, (_, i) => {
+  const m = (i % 12) + 1;
+  const y = 24 + Math.floor(i / 12);
+  return `${m < 10 ? '0'+m : m}/${y}`;
+});
 
 export default function PaymentGatewayScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = true; // force dark for premium fintech look
   const router = useRouter();
+  const { total: cartTotal, items } = useCart();
 
-  // State
-  const [selectedMethod, setSelectedMethod] = useState('visa');
-  const [selectedBank, setSelectedBank] = useState('Commercial Bank');
-  const [selectedWallet, setSelectedWallet] = useState('Frimi');
-  const [isAddingNewCard, setIsAddingNewCard] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [activeTab, setActiveTab] = useState<'card' | 'wallet' | 'bank' | 'qr'>('card');
+  const [selectedWallet, setSelectedWallet] = useState<string | null>(null);
+
+  // Card Form State
   const [cardNumber, setCardNumber] = useState('');
+  const [cardName, setCardName] = useState('');
   const [expiry, setExpiry] = useState('');
   const [cvc, setCvc] = useState('');
-  const [cardName, setCardName] = useState('');
+  const [saveCard, setSaveCard] = useState(true);
+  const [showExpiryPicker, setShowExpiryPicker] = useState(false);
 
-  // Animation
-  const successScale = useRef(new Animated.Value(0)).current;
-  const successOpacity = useRef(new Animated.Value(0)).current;
+  // Wallet Form State
+  const [walletPhone, setWalletPhone] = useState('');
+  const [walletPin, setWalletPin] = useState('');
 
-  const { total: cartTotal } = useCart();
+  // Errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Price breakdown (Dynamic from Cart)
-  const subtotal = cartTotal > 0 ? cartTotal : 0;
-  const delivery = subtotal > 0 ? 250 : 0;
-  const discount = subtotal > 0 ? (subtotal * 0.05 > 500 ? 500 : Math.round(subtotal * 0.05)) : 0;
-  const cashback = subtotal > 0 ? 250 : 0;
-  const tax = subtotal > 0 ? Math.round((subtotal + delivery - discount) * 0.18 * 100) / 100 : 0;
-  const total = subtotal > 0 ? subtotal + delivery - discount - cashback + tax : 0;
+  // Summary Logic
+  const subtotal = cartTotal;
+  const discount = subtotal > 0 ? 350 : 0;
+  const deliveryFee = subtotal > 0 ? 200 : 0;
+  const finalTotal = subtotal > 0 ? subtotal - discount + deliveryFee : 0;
 
   const handlePay = () => {
-    setShowSuccess(true);
-    Animated.parallel([
-      Animated.spring(successScale, { toValue: 1, friction: 4, useNativeDriver: true }),
-      Animated.timing(successOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-    ]).start();
-  };
+    setErrors({});
+    let hasError = false;
+    let currentErrors: Record<string, string> = {};
 
-  const closeSuccess = () => {
-    Animated.parallel([
-      Animated.timing(successScale, { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(successOpacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start(() => setShowSuccess(false));
-  };
-
-  /* ─── Icon renderer ─── */
-  const renderIcon = (iconName: string, lib: string, size = 28, color = '#60a5fa') => {
-    switch (lib) {
-      case 'FontAwesome5':
-        return <FontAwesome5 name={iconName} size={size} color={color} />;
-      case 'MaterialCommunityIcons':
-        return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
-      case 'MaterialIcons':
-        return <MaterialIcons name={iconName as any} size={size} color={color} />;
-      default:
-        return <Ionicons name={iconName as any} size={size} color={color} />;
+    if (activeTab === 'card') {
+      if (!cardName.trim()) {
+        currentErrors.name = 'Card holder name is required';
+        hasError = true;
+      }
+      const cardVal = validateCardNumber(cardNumber);
+      if (!cardVal.isValid) {
+        currentErrors.cardNumber = cardVal.error || 'Invalid card';
+        hasError = true;
+      }
+      const expiryVal = validateExpiry(expiry);
+      if (!expiryVal.isValid) {
+        currentErrors.expiry = expiryVal.error || 'Invalid expiry';
+        hasError = true;
+      }
+      const cvvVal = validateCVV(cvc, cardVal.network || 'unknown');
+      if (!cvvVal.isValid) {
+        currentErrors.cvv = cvvVal.error || 'Invalid CVV';
+        hasError = true;
+      }
+      if (hasError) {
+        setErrors(currentErrors);
+        return;
+      }
+      router.push({
+        pathname: '/payment/otp',
+        params: { total: finalTotal, method: 'card', cardNumber: cardNumber.slice(-4) }
+      });
+    } else if (activeTab === 'wallet') {
+      if (!selectedWallet) return;
+      if (['mcash', 'ezcash'].includes(selectedWallet)) {
+        if (!walletPhone.trim()) {
+          currentErrors.walletPhone = 'Mobile number is required';
+          hasError = true;
+        } else {
+          const walletVal = validateWallet(selectedWallet, walletPhone, finalTotal, walletPin);
+          if (!walletVal.isValid) {
+            if (walletVal.error?.includes('PIN')) {
+              currentErrors.walletPin = walletVal.error;
+            } else {
+              currentErrors.walletPhone = walletVal.error;
+            }
+            hasError = true;
+          }
+        }
+      }
+      if (hasError) {
+        setErrors(currentErrors);
+        return;
+      }
+      router.push({
+        pathname: '/payment/otp',
+        params: { total: finalTotal, method: selectedWallet }
+      });
     }
   };
 
-  /* ─── RENDER ─── */
+  const renderTab = (id: typeof activeTab, label: string, icon: string, lib: string) => {
+    const isActive = activeTab === id;
+    return (
+      <TouchableOpacity 
+        style={[s.tab, isActive && s.tabActive]} 
+        onPress={() => setActiveTab(id)}
+        activeOpacity={0.8}
+      >
+        <View style={[s.tabIconBox, isActive && s.tabIconBoxActive]}>
+          {lib === 'FontAwesome5' ? (
+            <FontAwesome5 name={icon} size={20} color={isActive ? '#fff' : '#9ca3af'} />
+          ) : lib === 'Foundation' ? (
+            <Foundation name={icon as any} size={24} color={isActive ? '#fff' : '#9ca3af'} />
+          ) : lib === 'MaterialCommunityIcons' ? (
+            <MaterialCommunityIcons name={icon as any} size={22} color={isActive ? '#fff' : '#9ca3af'} />
+          ) : (
+            <Ionicons name={icon as any} size={22} color={isActive ? '#fff' : '#9ca3af'} />
+          )}
+        </View>
+        <Text style={[s.tabLabel, isActive && s.tabLabelActive]}>{label}</Text>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <View style={s.root}>
+      {/* HEADER */}
+      <View style={s.header}>
+        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={24} color="#f8fafc" />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Checkout</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
-
-        {/* ───── HEADER ───── */}
-        <View style={s.header}>
-          <Text style={s.headerTitle}>Secure Checkout</Text>
-          <View style={s.sslRow}>
-            <Ionicons name="lock-closed" size={16} color="#facc15" />
-            <Text style={s.sslText}> 100% Secure</Text>
-          </View>
-        </View>
-
-        {/* ───── AI OFFER BANNER ───── */}
-        <View style={s.offerBanner}>
-          <MaterialCommunityIcons name="robot-happy" size={20} color="#a78bfa" />
-          <Text style={s.offerBannerText}>  AI Offers: 10% Cashback + Free Delivery for new users!</Text>
-        </View>
-
-        {/* ───── 9 PAYMENT METHOD TILES (3×3 grid) ───── */}
-        <Text style={s.sectionLabel}>Select Payment Method</Text>
-        <View style={s.methodGrid}>
-          {PAYMENT_METHODS.map(m => {
-            const active = selectedMethod === m.key;
-            return (
-              <TouchableOpacity
-                key={m.key}
-                style={[s.methodTile, active && s.methodTileActive]}
-                onPress={() => setSelectedMethod(m.key)}
-                activeOpacity={0.7}
-              >
-                {renderIcon(m.icon, m.lib, 26, active ? '#7dd3fc' : '#94a3b8')}
-                <Text style={[s.methodTileLabel, active && s.methodTileLabelActive]}>{m.label}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* ───── CONDITIONAL: BANK PICKER ───── */}
-        {selectedMethod === 'bank' && (
-          <View style={s.pickerWrap}>
-            <Text style={s.pickerTitle}>Select Sri Lankan Bank</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipScroll}>
-              {SRI_LANKAN_BANKS.map(bank => (
-                <TouchableOpacity
-                  key={bank}
-                  style={[s.chip, selectedBank === bank && s.chipActive]}
-                  onPress={() => setSelectedBank(bank)}
-                >
-                  <MaterialCommunityIcons name="bank" size={14} color={selectedBank === bank ? '#0ea5e9' : '#64748b'} />
-                  <Text style={[s.chipText, selectedBank === bank && s.chipTextActive]}> {bank}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ───── CONDITIONAL: WALLET PICKER ───── */}
-        {selectedMethod === 'wallet' && (
-          <View style={s.pickerWrap}>
-            <Text style={s.pickerTitle}>Select Wallet / Payment App</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipScroll}>
-              {SRI_LANKAN_WALLETS.map(w => (
-                <TouchableOpacity
-                  key={w}
-                  style={[s.chip, selectedWallet === w && s.chipActive]}
-                  onPress={() => setSelectedWallet(w)}
-                >
-                  <Ionicons name="wallet" size={14} color={selectedWallet === w ? '#0ea5e9' : '#64748b'} />
-                  <Text style={[s.chipText, selectedWallet === w && s.chipTextActive]}> {w}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* ───── SAVED CARDS ───── */}
-        <View style={s.sectionRow}>
-          <Text style={s.sectionLabel}>Saved Cards</Text>
-          <TouchableOpacity onPress={() => setIsAddingNewCard(!isAddingNewCard)}>
-            <Text style={s.linkText}>{isAddingNewCard ? 'Cancel' : '+ Add New'}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ───── CARD ENTRY FORM (Toggled by + Add New or card method) ───── */}
-        {(isAddingNewCard || (['visa', 'mastercard', 'debit'].includes(selectedMethod) && !isAddingNewCard)) && (
-          <View style={s.cardForm}>
-            <Text style={s.pickerTitle}>Enter Card Details</Text>
-            <TextInput
-              style={s.input}
-              placeholder="Card Number"
-              placeholderTextColor="#475569"
-              value={cardNumber}
-              onChangeText={t => setCardNumber(t.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim())}
-              keyboardType="number-pad"
-              maxLength={19}
-            />
-            <View style={s.cardRow}>
-              <TextInput
-                style={[s.input, { flex: 1, marginRight: 8 }]}
-                placeholder="MM/YY"
-                placeholderTextColor="#475569"
-                value={expiry}
-                onChangeText={setExpiry}
-                maxLength={5}
-              />
-              <TextInput
-                style={[s.input, { flex: 1 }]}
-                placeholder="CVC"
-                placeholderTextColor="#475569"
-                value={cvc}
-                onChangeText={setCvc}
-                keyboardType="number-pad"
-                maxLength={3}
-                secureTextEntry
-              />
+        
+        {/* ORDER SUMMARY */}
+        <View style={s.summaryCard}>
+          <Text style={s.sectionTitle}>Order Summary</Text>
+          
+          {items.length === 0 ? (
+            <View style={s.itemRow}>
+              <Text style={{ color: '#94a3b8' }}>Your cart is empty.</Text>
             </View>
-            <TextInput
-              style={s.input}
-              placeholder="Cardholder Name"
-              placeholderTextColor="#475569"
-              value={cardName}
-              onChangeText={setCardName}
-            />
+          ) : (
+            items.map(item => (
+              <View key={item.id} style={s.itemRow}>
+                {item.image ? (
+                  <Image source={{ uri: item.image }} style={s.itemImage} />
+                ) : (
+                  <View style={s.itemIconWrap}>
+                    <Ionicons name="cart" size={24} color="#A78BFA" />
+                  </View>
+                )}
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={s.itemName}>{item.title}</Text>
+                  <Text style={s.itemSub}>Qty: {item.quantity}</Text>
+                </View>
+                <Text style={s.itemPrice}>LKR {(item.price * item.quantity).toLocaleString()}.00</Text>
+              </View>
+            ))
+          )}
+          
+          <View style={s.summaryRow}>
+            <Text style={s.summaryLabel}>Discount</Text>
+            <Text style={s.discountValue}>- LKR {discount.toLocaleString()}.00</Text>
           </View>
-        )}
-        <TouchableOpacity style={s.savedCard}>
-          <Ionicons name="card" size={22} color="#3b82f6" />
-          <View style={{ marginLeft: 12, flex: 1 }}>
-            <Text style={s.savedCardTitle}>Visa •••• 4287</Text>
-            <Text style={s.savedCardSub}>Commercial Bank</Text>
+          
+          <View style={s.summaryRow}>
+            <Text style={s.summaryLabel}>Delivery Fee</Text>
+            <Text style={s.summaryValue}>LKR {deliveryFee.toLocaleString()}.00</Text>
           </View>
-          <Ionicons name="checkmark-circle" size={22} color="#4ade80" />
-        </TouchableOpacity>
-        <TouchableOpacity style={s.savedCard}>
-          <FontAwesome5 name="credit-card" size={20} color="#f97316" />
-          <View style={{ marginLeft: 12, flex: 1 }}>
-            <Text style={s.savedCardTitle}>Mastercard •••• 8912</Text>
-            <Text style={s.savedCardSub}>Sampath Bank</Text>
-          </View>
-          <View style={s.radioEmpty} />
-        </TouchableOpacity>
-
-        {/* ───── PRICE BREAKDOWN (matches screenshot) ───── */}
-        <View style={s.breakdownCard}>
-          <View style={s.breakdownRow}>
-            <Text style={s.breakdownLabel}>Subtotal</Text>
-            <Text style={s.breakdownValue}>LKR {subtotal.toLocaleString()}.00</Text>
-          </View>
-          <View style={s.breakdownRow}>
-            <Text style={s.breakdownLabel}>Delivery</Text>
-            <Text style={s.breakdownValue}>LKR {delivery.toLocaleString()}.00</Text>
-          </View>
-          <View style={s.breakdownRow}>
-            <Text style={s.breakdownLabel}>Offer Discount 🏷️</Text>
-            <Text style={[s.breakdownValue, { color: '#f87171' }]}>−LKR {discount.toLocaleString()}.00</Text>
-          </View>
-          <View style={s.breakdownRow}>
-            <Text style={s.breakdownLabel}>Cashback 💰</Text>
-            <Text style={[s.breakdownValue, { color: '#f87171' }]}>−LKR {cashback.toLocaleString()}.00</Text>
-          </View>
-          <View style={s.breakdownRow}>
-            <Text style={s.breakdownLabel}>Tax (VAT 18%)</Text>
-            <Text style={s.breakdownValue}>LKR {tax.toLocaleString()}</Text>
-          </View>
+          
           <View style={s.divider} />
-          <View style={s.breakdownRow}>
-            <Text style={s.totalLabel}>Total</Text>
-            <Text style={s.totalValue}>LKR {total.toLocaleString()}</Text>
+          
+          <View style={s.summaryRow}>
+            <Text style={s.totalLabel}>Total Amount</Text>
+            <Text style={s.totalValue}>LKR {finalTotal.toLocaleString()}.00</Text>
           </View>
-
-          {/* SSL badge */}
-          <View style={s.sslBadge}>
-            <Ionicons name="shield-checkmark" size={16} color="#4ade80" />
-            <Text style={s.sslBadgeText}> 256-bit SSL Encrypted · 100% Secure Payments</Text>
-          </View>
-
-          {/* PAY BUTTON */}
-          <TouchableOpacity style={s.payBtn} onPress={handlePay} activeOpacity={0.8}>
-            <Ionicons name="flash" size={18} color="#000" />
-            <Text style={s.payBtnText}>  Pay LKR {total.toLocaleString()} Now</Text>
-          </TouchableOpacity>
-
-          <Text style={s.poweredBy}>Powered by OfferPay LK · PCI-DSS Compliant</Text>
         </View>
 
-        {/* ───── TRANSACTION HISTORY (matches screenshot) ───── */}
-        <View style={s.sectionRow}>
-          <Text style={s.sectionLabel}>Transaction History</Text>
-          <TouchableOpacity><Text style={s.linkText}>Full History →</Text></TouchableOpacity>
+        {/* PAYMENT METHOD TABS */}
+        <Text style={s.sectionTitle}>Select Payment Method</Text>
+        <Text style={s.sectionSub}>Choose your preferred payment option</Text>
+        
+        <View style={s.tabsRow}>
+          {renderTab('card', 'Card', 'credit-card', 'FontAwesome5')}
+          {renderTab('wallet', 'Wallet', 'wallet', 'Ionicons')}
+          {renderTab('bank', 'Bank', 'bank', 'MaterialCommunityIcons')}
+          {renderTab('qr', 'QR', 'qrcode', 'FontAwesome5')}
         </View>
-        {MOCK_TRANSACTIONS.map(tx => (
-          <View key={tx.id} style={s.txRow}>
-            <View style={[s.txIcon, { backgroundColor: tx.amount > 0 ? '#064e3b' : '#1e1b4b' }]}>
-              <Ionicons name={tx.icon as any} size={20} color={tx.amount > 0 ? '#34d399' : '#a78bfa'} />
+
+        {/* TAB CONTENT: CARD */}
+        {activeTab === 'card' && (
+          <View style={s.formContainer}>
+            <View style={s.inputGroup}>
+              <Text style={s.label}>Card Number</Text>
+              <View style={[s.inputWrap, errors.cardNumber ? s.inputError : null]}>
+                <TextInput
+                  style={s.input}
+                  placeholder="1234 5678 9012 3456"
+                  placeholderTextColor="#475569"
+                  value={cardNumber}
+                  onChangeText={t => {
+                    setCardNumber(t.replace(/\D/g, '').replace(/(.{4})/g, '$1 ').trim());
+                  }}
+                  keyboardType="number-pad"
+                  maxLength={19}
+                />
+                <Ionicons name="camera-outline" size={24} color="#94a3b8" />
+              </View>
+              {errors.cardNumber && <Text style={s.errorText}>{errors.cardNumber}</Text>}
             </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={s.txTitle}>{tx.title}</Text>
-              <Text style={s.txSub}>{tx.date} · {tx.method}</Text>
+
+            <View style={s.inputGroup}>
+              <Text style={s.label}>Card Holder Name</Text>
+              <View style={[s.inputWrap, errors.name ? s.inputError : null]}>
+                <TextInput
+                  style={s.input}
+                  placeholder="Mohamed Imran"
+                  placeholderTextColor="#475569"
+                  value={cardName}
+                  onChangeText={setCardName}
+                />
+              </View>
+              {errors.name && <Text style={s.errorText}>{errors.name}</Text>}
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={[s.txAmount, { color: tx.amount > 0 ? '#34d399' : '#f87171' }]}>
-                {tx.amount > 0 ? '+' : '−'}LKR {Math.abs(tx.amount).toLocaleString()}
-              </Text>
-              {tx.cashback > 0 && (
-                <Text style={s.txCashback}>+LKR {tx.cashback} CB</Text>
-              )}
+
+            <View style={s.row}>
+              <View style={[s.inputGroup, { flex: 1, marginRight: 16 }]}>
+                <Text style={s.label}>Expiry Date</Text>
+                <TouchableOpacity 
+                  style={[s.inputWrap, errors.expiry ? s.inputError : null, { paddingVertical: 10 }]}
+                  onPress={() => setShowExpiryPicker(true)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[{ flex: 1, fontSize: 15 }, expiry ? { color: '#fff' } : { color: '#475569' }]}>
+                    {expiry || 'MM / YY'}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={20} color="#94a3b8" />
+                </TouchableOpacity>
+                {errors.expiry && <Text style={s.errorText}>{errors.expiry}</Text>}
+              </View>
+
+              <View style={[s.inputGroup, { flex: 1 }]}>
+                <Text style={s.label}>CVV</Text>
+                <View style={[s.inputWrap, errors.cvv ? s.inputError : null]}>
+                  <TextInput
+                    style={s.input}
+                    placeholder="123"
+                    placeholderTextColor="#475569"
+                    value={cvc}
+                    onChangeText={setCvc}
+                    keyboardType="number-pad"
+                    maxLength={3}
+                    autoComplete="cc-csc"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    textContentType="none"
+                  />
+                  <Ionicons name="help-circle-outline" size={22} color="#94a3b8" />
+                </View>
+                {errors.cvv && <Text style={s.errorText}>{errors.cvv}</Text>}
+              </View>
             </View>
+
+            <TouchableOpacity 
+              style={s.checkboxRow} 
+              onPress={() => setSaveCard(!saveCard)}
+              activeOpacity={0.8}
+            >
+              <View style={[s.checkbox, saveCard && s.checkboxActive]}>
+                {saveCard && <Ionicons name="checkmark" size={14} color="#fff" />}
+              </View>
+              <Text style={s.checkboxLabel}>Save this card for faster payments</Text>
+            </TouchableOpacity>
+
           </View>
-        ))}
+        )}
+
+        {/* TAB CONTENT: WALLET */}
+        {activeTab === 'wallet' && (
+          <View style={s.walletContainer}>
+            {WALLETS.map(w => (
+              <View key={w.id}>
+                <TouchableOpacity 
+                  style={s.walletItem} 
+                  onPress={() => setSelectedWallet(selectedWallet === w.id ? null : w.id)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[s.walletIconBox, { backgroundColor: `${w.color}20` }]}>
+                    <MaterialCommunityIcons name={w.icon as any} size={24} color={w.color} />
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 16 }}>
+                    <Text style={s.walletName}>{w.name}</Text>
+                    <Text style={s.walletSub}>{w.sub}</Text>
+                  </View>
+                  <Ionicons name={selectedWallet === w.id ? "chevron-down" : "chevron-forward"} size={20} color="#64748b" />
+                </TouchableOpacity>
+
+                {selectedWallet === w.id && ['mcash', 'ezcash'].includes(w.id) && (
+                  <View style={s.walletForm}>
+                    <Text style={s.label}>Mobile Number</Text>
+                    <View style={[s.inputWrap, errors.walletPhone ? s.inputError : null]}>
+                      <TextInput
+                        style={s.input}
+                        placeholder="07X XXX XXXX"
+                        placeholderTextColor="#475569"
+                        value={walletPhone}
+                        onChangeText={setWalletPhone}
+                        keyboardType="phone-pad"
+                        maxLength={10}
+                      />
+                    </View>
+                    {errors.walletPhone && <Text style={s.errorText}>{errors.walletPhone}</Text>}
+                    
+                    {w.id === 'mcash' && (
+                      <View style={{ marginTop: 12 }}>
+                        <Text style={s.label}>Wallet PIN</Text>
+                        <View style={[s.inputWrap, errors.walletPin ? s.inputError : null]}>
+                          <TextInput
+                            style={s.input}
+                            placeholder="****"
+                            placeholderTextColor="#475569"
+                            value={walletPin}
+                            onChangeText={setWalletPin}
+                            keyboardType="number-pad"
+                            secureTextEntry
+                            maxLength={6}
+                          />
+                        </View>
+                        {errors.walletPin && <Text style={s.errorText}>{errors.walletPin}</Text>}
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* TAB CONTENT: BANK (Mock Grid) */}
+        {activeTab === 'bank' && (
+          <View style={s.bankGrid}>
+            {BANKS.map(b => (
+              <TouchableOpacity key={b.id} style={s.bankItem}>
+                <View style={[s.bankIconBox, { backgroundColor: `${b.color}15` }]}>
+                  <MaterialCommunityIcons name={b.icon as any} size={28} color={b.color} />
+                </View>
+                <Text style={s.bankName}>{b.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ───── PAYMENT SUCCESS OVERLAY (matches screenshot) ───── */}
-      {showSuccess && (
-        <Animated.View style={[s.successOverlay, { opacity: successOpacity }]}>
-          <Animated.View style={[s.successCard, { transform: [{ scale: successScale }] }]}>
-            {/* Header */}
-            <View style={s.successHeader}>
-              <Ionicons name="checkmark-done" size={18} color="#4ade80" />
-              <Text style={s.successHeaderText}>  Payment Success</Text>
+      {/* FIXED FOOTER */}
+      <View style={s.footer}>
+        <TouchableOpacity style={s.payBtn} onPress={handlePay} activeOpacity={0.9}>
+          <Ionicons name="lock-closed" size={18} color="#fff" />
+          <Text style={s.payBtnText}>Pay LKR {finalTotal.toLocaleString()}.00</Text>
+        </TouchableOpacity>
+        
+        <View style={s.footerSecurity}>
+          <Ionicons name="shield-checkmark" size={14} color="#10b981" />
+          <Text style={s.footerSecurityText}>Your payment is protected by 256-bit SSL encryption</Text>
+        </View>
+
+        <View style={s.footerLogos}>
+          <FontAwesome5 name="cc-visa" size={32} color="#94a3b8" style={{ marginHorizontal: 12 }} />
+          <FontAwesome5 name="cc-mastercard" size={32} color="#94a3b8" style={{ marginHorizontal: 12 }} />
+          <MaterialCommunityIcons name="shield-lock" size={32} color="#94a3b8" style={{ marginHorizontal: 12 }} />
+        </View>
+      </View>
+
+      {/* EXPIRY PICKER MODAL */}
+      <Modal visible={showExpiryPicker} transparent animationType="slide">
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Select Expiry Date</Text>
+              <TouchableOpacity onPress={() => setShowExpiryPicker(false)}>
+                <Ionicons name="close" size={24} color="#94a3b8" />
+              </TouchableOpacity>
             </View>
+            <ScrollView style={s.modalScroll}>
+              <View style={s.expiryGrid}>
+                {EXPIRY_OPTIONS.map(opt => (
+                  <TouchableOpacity 
+                    key={opt} 
+                    style={[s.expiryTile, expiry === opt && s.expiryTileActive]}
+                    onPress={() => { setExpiry(opt); setShowExpiryPicker(false); }}
+                  >
+                    <Text style={[s.expiryTileText, expiry === opt && s.expiryTileTextActive]}>{opt}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
-            {/* Circle check */}
-            <View style={s.successCircle}>
-              <Ionicons name="checkmark" size={48} color="#4ade80" />
-            </View>
-
-            <Text style={s.successTitle}>Payment Successful!</Text>
-            <Text style={s.successSub}>Your order has been confirmed 🎉</Text>
-
-            {/* Receipt details */}
-            <View style={s.receiptCard}>
-              <View style={s.receiptRow}>
-                <Text style={s.receiptLabel}>Amount Paid</Text>
-                <Text style={s.receiptValue}>LKR {total.toLocaleString()}</Text>
-              </View>
-              <View style={s.receiptRow}>
-                <Text style={s.receiptLabel}>Method</Text>
-                <Text style={s.receiptValue}>Visa •4287</Text>
-              </View>
-              <View style={s.receiptRow}>
-                <Text style={s.receiptLabel}>Transaction ID</Text>
-                <Text style={s.receiptValue}>OPL-2026-48291</Text>
-              </View>
-              <View style={s.receiptRow}>
-                <Text style={s.receiptLabel}>Cashback</Text>
-                <Text style={[s.receiptValue, { color: '#4ade80' }]}>LKR 103 earned ✓</Text>
-              </View>
-              <View style={s.receiptRow}>
-                <Text style={s.receiptLabel}>Status</Text>
-                <Text style={[s.receiptValue, { color: '#4ade80' }]}>Completed</Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={s.receiptBtn} onPress={closeSuccess} activeOpacity={0.8}>
-              <Text style={s.receiptBtnText}>View Receipt →</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </Animated.View>
-      )}
     </View>
   );
 }
 
-/* ──────────────────────────────────────────────
-   STYLES – Premium dark fintech theme
-   ────────────────────────────────────────────── */
-
-const { width } = Dimensions.get('window');
-const TILE_SIZE = (width - 64) / 3;
-
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0a0a1a' },
+  root: { flex: 1, backgroundColor: '#0B0D17' }, // Deep Figma Navy background
+  
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
+  backBtn: { padding: 4 },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#f8fafc' },
+  
   scroll: { flex: 1 },
-  content: { padding: 16, paddingTop: 48 },
+  content: { padding: 20 },
 
-  /* Header */
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  headerTitle: { fontSize: 22, fontWeight: '700', color: '#e2e8f0' },
-  sslRow: { flexDirection: 'row', alignItems: 'center' },
-  sslText: { fontSize: 13, color: '#4ade80', fontWeight: '600' },
+  // Summary
+  summaryCard: { backgroundColor: '#131524', borderRadius: 16, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: '#1F223B' },
+  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#f8fafc', marginBottom: 16 },
+  sectionSub: { fontSize: 13, color: '#94a3b8', marginTop: -12, marginBottom: 16 },
+  
+  itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  itemIconWrap: { width: 44, height: 44, backgroundColor: '#2E1A5E', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  itemImage: { width: 44, height: 44, borderRadius: 12, backgroundColor: '#1F223B' },
+  itemName: { fontSize: 15, fontWeight: '600', color: '#e2e8f0' },
+  itemSub: { fontSize: 13, color: '#64748b', marginTop: 2 },
+  itemPrice: { fontSize: 15, fontWeight: '600', color: '#f8fafc' },
+  
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  summaryLabel: { color: '#94a3b8', fontSize: 14 },
+  discountValue: { color: '#10b981', fontSize: 14, fontWeight: '500' },
+  summaryValue: { color: '#e2e8f0', fontSize: 14, fontWeight: '500' },
+  
+  divider: { height: 1, backgroundColor: '#1F223B', marginVertical: 12 },
+  
+  totalLabel: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
+  totalValue: { color: '#A78BFA', fontSize: 16, fontWeight: '700' }, // Light purple matching Figma
 
-  /* Offer banner */
-  offerBanner: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(139,92,246,0.15)', borderRadius: 12, padding: 12, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(139,92,246,0.3)' },
-  offerBannerText: { color: '#c4b5fd', fontSize: 13, fontWeight: '500', flex: 1 },
+  // Tabs
+  tabsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24 },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12, backgroundColor: '#131524', marginHorizontal: 4, borderWidth: 1, borderColor: 'transparent' },
+  tabActive: { backgroundColor: '#2E1A5E', borderColor: '#7C3AED' },
+  tabIconBox: { marginBottom: 8 },
+  tabIconBoxActive: { },
+  tabLabel: { fontSize: 12, color: '#94a3b8', fontWeight: '500' },
+  tabLabelActive: { color: '#fff' },
 
-  /* Section labels */
-  sectionLabel: { fontSize: 16, fontWeight: '600', color: '#cbd5e1', marginBottom: 12 },
-  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, marginTop: 24 },
-  linkText: { fontSize: 13, color: '#38bdf8', fontWeight: '500' },
+  // Form Base
+  formContainer: { backgroundColor: '#131524', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#1F223B' },
+  inputGroup: { marginBottom: 20 },
+  label: { fontSize: 13, color: '#94a3b8', marginBottom: 8 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#2D304B', paddingBottom: 8 },
+  inputError: { borderBottomColor: '#ef4444' },
+  input: { flex: 1, color: '#fff', fontSize: 15, backgroundColor: 'transparent', outlineStyle: 'none' as any },
+  errorText: { color: '#ef4444', fontSize: 12, marginTop: 4 },
+  row: { flexDirection: 'row' },
+  
+  // Checkbox
+  checkboxRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  checkbox: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: '#475569', alignItems: 'center', justifyContent: 'center', marginRight: 10 },
+  checkboxActive: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  checkboxLabel: { color: '#cbd5e1', fontSize: 13 },
 
-  /* 3×3 method grid */
-  methodGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 16 },
-  methodTile: {
-    width: TILE_SIZE,
-    height: TILE_SIZE * 0.85,
-    backgroundColor: 'rgba(30,30,60,0.7)',
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(100,116,139,0.25)',
-  },
-  methodTileActive: {
-    borderColor: '#38bdf8',
-    backgroundColor: 'rgba(56,189,248,0.1)',
-    shadowColor: '#38bdf8',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  methodTileLabel: { fontSize: 11, color: '#94a3b8', marginTop: 6, textAlign: 'center', fontWeight: '500' },
-  methodTileLabelActive: { color: '#7dd3fc' },
+  // Wallets
+  walletContainer: { backgroundColor: '#131524', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1F223B' },
+  walletItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#1F223B' },
+  walletIconBox: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  walletName: { fontSize: 15, fontWeight: '600', color: '#e2e8f0' },
+  walletSub: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  walletForm: { padding: 16, backgroundColor: 'rgba(0,0,0,0.2)', borderRadius: 12, marginTop: 8, marginBottom: 8 },
 
-  /* Chip pickers (banks / wallets) */
-  pickerWrap: { marginBottom: 16 },
-  pickerTitle: { fontSize: 14, fontWeight: '600', color: '#94a3b8', marginBottom: 8 },
-  chipScroll: { flexDirection: 'row' },
-  chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30,30,60,0.6)', borderRadius: 20, paddingHorizontal: 14, paddingVertical: 8, marginRight: 8, borderWidth: 1, borderColor: 'rgba(100,116,139,0.2)' },
-  chipActive: { borderColor: '#0ea5e9', backgroundColor: 'rgba(14,165,233,0.15)' },
-  chipText: { fontSize: 12, color: '#64748b', fontWeight: '500' },
-  chipTextActive: { color: '#7dd3fc' },
+  // Banks
+  bankGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', backgroundColor: '#131524', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#1F223B' },
+  bankItem: { width: '30%', alignItems: 'center', marginBottom: 20 },
+  bankIconBox: { width: 56, height: 56, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  bankName: { fontSize: 11, color: '#94a3b8', textAlign: 'center' },
 
-  /* Card form */
-  cardForm: { marginBottom: 16 },
-  input: { backgroundColor: 'rgba(30,30,60,0.8)', borderRadius: 10, padding: 14, color: '#e2e8f0', fontSize: 15, marginBottom: 10, borderWidth: 1, borderColor: 'rgba(100,116,139,0.2)' },
-  cardRow: { flexDirection: 'row' },
+  // Footer
+  footer: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 32, backgroundColor: '#0B0D17', borderTopWidth: 1, borderTopColor: '#1F223B' },
+  payBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#7C3AED', borderRadius: 14, paddingVertical: 16, marginBottom: 16 },
+  payBtnText: { color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 8 },
+  
+  footerSecurity: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  footerSecurityText: { color: '#10b981', fontSize: 11, marginLeft: 6 },
+  
+  footerLogos: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
 
-  /* Saved cards */
-  savedCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30,30,60,0.6)', borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(100,116,139,0.15)' },
-  savedCardTitle: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  savedCardSub: { color: '#64748b', fontSize: 12, marginTop: 2 },
-  radioEmpty: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: '#475569' },
-
-  /* Price breakdown */
-  breakdownCard: { backgroundColor: 'rgba(15,15,40,0.9)', borderRadius: 16, padding: 20, marginTop: 20, borderWidth: 1, borderColor: 'rgba(100,116,139,0.2)' },
-  breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  breakdownLabel: { fontSize: 14, color: '#94a3b8' },
-  breakdownValue: { fontSize: 14, color: '#e2e8f0', fontWeight: '500' },
-  divider: { height: 1, backgroundColor: 'rgba(100,116,139,0.2)', marginVertical: 10 },
-  totalLabel: { fontSize: 16, fontWeight: '700', color: '#e2e8f0' },
-  totalValue: { fontSize: 20, fontWeight: '700', color: '#4ade80' },
-
-  sslBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(74,222,128,0.1)', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 16, marginTop: 16, borderWidth: 1, borderColor: 'rgba(74,222,128,0.2)' },
-  sslBadgeText: { fontSize: 11, color: '#4ade80', fontWeight: '500' },
-
-  payBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#e2e8f0', borderRadius: 12, paddingVertical: 16, marginTop: 16 },
-  payBtnText: { fontSize: 16, fontWeight: '700', color: '#0f0f2a' },
-
-  poweredBy: { textAlign: 'center', fontSize: 11, color: '#475569', marginTop: 12 },
-
-  /* Transaction history */
-  txRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(30,30,60,0.5)', borderRadius: 14, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: 'rgba(100,116,139,0.1)' },
-  txIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  txTitle: { color: '#e2e8f0', fontSize: 14, fontWeight: '600' },
-  txSub: { color: '#64748b', fontSize: 12, marginTop: 2 },
-  txAmount: { fontSize: 15, fontWeight: '700' },
-  txCashback: { fontSize: 11, color: '#4ade80', marginTop: 2 },
-
-  /* Success overlay */
-  successOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', zIndex: 999 },
-  successCard: { width: width * 0.88, backgroundColor: '#0a1f1a', borderRadius: 24, padding: 24, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(74,222,128,0.3)' },
-  successHeader: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', marginBottom: 24 },
-  successHeaderText: { color: '#e2e8f0', fontSize: 15, fontWeight: '600' },
-  successCircle: { width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#4ade80', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  successTitle: { fontSize: 22, fontWeight: '700', color: '#4ade80', marginBottom: 4 },
-  successSub: { fontSize: 14, color: '#94a3b8', marginBottom: 20 },
-
-  receiptCard: { width: '100%', backgroundColor: 'rgba(15,40,30,0.6)', borderRadius: 14, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(74,222,128,0.15)' },
-  receiptRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 },
-  receiptLabel: { fontSize: 13, color: '#94a3b8' },
-  receiptValue: { fontSize: 13, color: '#e2e8f0', fontWeight: '600' },
-
-  receiptBtn: { width: '100%', borderRadius: 12, borderWidth: 1.5, borderColor: '#4ade80', paddingVertical: 14, alignItems: 'center' },
-  receiptBtnText: { color: '#4ade80', fontSize: 15, fontWeight: '600' },
+  // Modals
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#131524', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: 400, paddingBottom: 20, borderWidth: 1, borderColor: '#1F223B' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#1F223B' },
+  modalTitle: { fontSize: 18, fontWeight: '600', color: '#f8fafc' },
+  modalScroll: { padding: 20 },
+  expiryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  expiryTile: { width: '31%', backgroundColor: '#0B0D17', paddingVertical: 14, borderRadius: 10, alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#1F223B' },
+  expiryTileActive: { borderColor: '#7C3AED', backgroundColor: '#2E1A5E' },
+  expiryTileText: { fontSize: 15, color: '#94a3b8', fontWeight: '500' },
+  expiryTileTextActive: { color: '#fff', fontWeight: '700' },
 });

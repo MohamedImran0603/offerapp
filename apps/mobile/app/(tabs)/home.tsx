@@ -535,7 +535,7 @@ export default function HomeScreen() {
               returnKeyType="search"
             />
             <TouchableOpacity
-              onPress={handleCameraPress}
+              onPress={() => router.push('/offers/qr-scanner')}
               style={{ padding: 10 }}
               hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             >
@@ -629,10 +629,15 @@ export default function HomeScreen() {
         {recommendedOffers.length > 0 && (
           <View style={styles.recSection}>
             <View style={styles.recHeaderRow}>
-              <Text style={styles.recSectionTitle}>🧠 AI Picks For You</Text>
-              <Text style={styles.recSectionSub}>
-                {lastSearchedTerm ? `Inspired by your search for "${lastSearchedTerm}"` : 'Based on your behavior'}
-              </Text>
+              <View style={{flex: 1}}>
+                <Text style={styles.recSectionTitle}>🧠 AI Picks For You</Text>
+                <Text style={styles.recSectionSub}>
+                  {lastSearchedTerm ? `Inspired by your search for "${lastSearchedTerm}"` : 'Based on your behavior'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => router.push('/offers/smart-recommendations')}>
+                <Text style={{ fontSize: 13, color: '#6b21a8', fontWeight: 'bold' }}>See All</Text>
+              </TouchableOpacity>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.recScroll}>
               {recommendedOffers.map((item) => (

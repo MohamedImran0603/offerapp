@@ -1,505 +1,269 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, SafeAreaView, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../src/constants/Colors';
-import { saveUserProfile } from '../src/lib/userService';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth, db } from '../src/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import * as WebBrowser from 'expo-web-browser';
+import { doc, setDoc } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
+import { Checkbox } from 'expo-checkbox';
+
+const districts = [
+  "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+  "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar",
+  "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
+  "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
+  "Monaragala", "Ratnapura", "Kegalle"
+];
 
 export default function RegisterScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'phone' | 'email'>('phone');
-  
-  // Phone Sign In fields
+
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [district, setDistrict] = useState('Colombo');
-  const [language, setLanguage] = useState('English');
-  
-  // Email Portal fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
-  const [emailName, setEmailName] = useState('');
-  const [emailDistrict, setEmailDistrict] = useState('Colombo');
-  
-  const [showModal, setShowModal] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [contactMethod, setContactMethod] = useState<'email' | 'phone'>('email');
+  const [phone, setPhone] = useState('');
+  const [district, setDistrict] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   const handleRegister = async () => {
+    if ((contactMethod === 'email' && !email.trim()) || (contactMethod === 'phone' && !phone.trim()) || !name.trim() || !password.trim() || !confirmPassword.trim() || !district) {
+      Alert.alert('Error', 'Please fill in all fields.');
+      return;
+    }
+    // Validate phone number length when phone method selected
+    if (contactMethod === 'phone' && !/^\d{10}$/.test(phone)) {
+      Alert.alert('Error', 'Phone number must be exactly 10 digits.');
+      return;
+    }
+    if (password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match.');
+      return;
+    }
+    if (!agreedToTerms) {
+      Alert.alert('Error', 'You must agree to the Terms of Service and Privacy Policy.');
+      return;
+    }
+
     setLoading(true);
-    setShowModal(false);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const uid = userCredential.user.uid;
 
-    if (activeTab === 'phone') {
-      if (name.trim() === '' || phone.trim() === '') {
-        alert('Please enter both your Name and Phone Number to sign in.');
-        setLoading(false);
-        return;
-      }
+      await setDoc(doc(db, 'users', uid), {
+        uid,
+        name: name.trim(),
+        email: contactMethod === 'email' ? email.toLowerCase().trim() : '',
+        phone: contactMethod === 'phone' ? phone.trim() : '',
+        district,
+        role: 'user',
+        createdAt: new Date().toISOString(),
+      });
 
-      // Navigate immediately and save in background
-      router.replace('/(tabs)/home');
-
-      try {
-        await saveUserProfile({
-          name: name,
-          email: '',
-          phone: '+94' + phone,
-          district,
-          language,
-        });
-        console.log('✅ User profile saved to Firebase successfully');
-      } catch (error) {
-        console.warn('⚠️ Background save failed:', error);
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      if (emailMode === 'signup') {
-        // Email Customer Registration Flow
-        if (emailName.trim() === '' || email.trim() === '' || password.trim() === '' || emailDistrict.trim() === '') {
-          alert('Please enter your Name, Email, Password, and District to register.');
-          setLoading(false);
-          return;
-        }
-
-        try {
-          console.log('Registering user account...');
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          const uid = userCredential.user.uid;
-
-          console.log(`✅ Auth user registered! UID: ${uid}`);
-          console.log('Saving customer profile to Firestore...');
-
-          // Save their user profile natively to Firestore '/users/{uid}'
-          await setDoc(doc(db, 'users', uid), {
-            uid: uid,
-            name: emailName,
-            email: email,
-            district: emailDistrict,
-            role: 'user',
-            createdAt: new Date().toISOString()
-          });
-
-          console.log('✅ Customer profile saved to Firestore!');
-          router.replace('/(tabs)/home');
-        } catch (error: any) {
-          console.error('❌ Registration failed:', error);
-          alert(error.message || 'Registration failed. Please check your details and password length (min 6 characters).');
-        } finally {
-          setLoading(false);
-        }
-      } else {
-        // Email Portal Auth Login
-        if (email.trim() === '' || password.trim() === '') {
-          alert('Please fill in your Email Address and Password to continue.');
-          setLoading(false);
-          return;
-        }
-
-        try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          console.log('✅ Successfully authenticated email partner portal');
-          
-          const uid = userCredential.user.uid;
-          const adminDoc = await getDoc(doc(db, 'admins', uid));
-          
-          if (adminDoc.exists()) {
-            console.log('👑 Admin detected! Navigating to native control panel...');
-            router.replace('/(tabs)/admin');
-          } else {
-            router.replace('/(tabs)/home');
-          }
-        } catch (error: any) {
-          console.error('❌ Portal login failed:', error);
-          alert(error.message || 'Verification failed. Please review your email and password.');
-        } finally {
-          setLoading(false);
-        }
-      }
+      Alert.alert('Success', 'Account created successfully!', [{ text: 'OK', onPress: () => { setName(''); setEmail(''); setPassword(''); setConfirmPassword(''); setDistrict(''); setAgreedToTerms(false); setRegistrationSuccess(true); router.replace('/(tabs)/home'); } }]);
+    } catch (e: any) {
+      Alert.alert('Registration Failed', e.message ?? 'Something went wrong');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.root}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* Header Section */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Welcome back</Text>
-          <Text style={styles.headerSubtitle}>Sign in to access your local retail portal</Text>
-        </View>
+        <View style={styles.card}>
 
-        {/* Dynamic Selector Tabs (No Admin/User mentions!) */}
-        <View style={styles.tabContainer}>
-          <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'phone' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('phone')}
-          >
-            <Text style={[styles.tabText, activeTab === 'phone' && styles.tabTextActive]}>Quick Sign In</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tabButton, activeTab === 'email' && styles.tabButtonActive]}
-            onPress={() => setActiveTab('email')}
-          >
-            <Text style={[styles.tabText, activeTab === 'email' && styles.tabTextActive]}>Email Portal</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Input Fields */}
-        <View style={styles.inputGroup}>
-          {activeTab === 'phone' ? (
-            <>
-              <View style={styles.inputContainer}>
-                <Text style={styles.icon}>👤</Text>
-                <TextInput
-                  placeholder="Full Name"
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.icon}>📞</Text>
-                <TextInput
-                  placeholder="Phone number e.g. 0771234567"
-                  style={styles.input}
-                  value={phone}
-                  onChangeText={setPhone}
-                  keyboardType="phone-pad"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-            </>
-          ) : (
-            <>
-              {emailMode === 'signup' && (
-                <View style={styles.inputContainer}>
-                  <Text style={styles.icon}>👤</Text>
-                  <TextInput
-                    placeholder="Full Name"
-                    style={styles.input}
-                    value={emailName}
-                    onChangeText={setEmailName}
-                    placeholderTextColor="#9ca3af"
-                  />
-                </View>
-              )}
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.icon}>✉️</Text>
-                <TextInput
-                  placeholder="Email address"
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-
-              <View style={styles.inputContainer}>
-                <Text style={styles.icon}>🔒</Text>
-                <TextInput
-                  placeholder="Password (min 6 characters)"
-                  style={styles.input}
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  placeholderTextColor="#9ca3af"
-                />
-              </View>
-
-              {emailMode === 'signup' && (
-                <View style={styles.inputContainer}>
-                  <Text style={styles.icon}>📍</Text>
-                  <TextInput
-                    placeholder="District (e.g. Colombo, Kandy)"
-                    style={styles.input}
-                    value={emailDistrict}
-                    onChangeText={setEmailDistrict}
-                    placeholderTextColor="#9ca3af"
-                  />
-                </View>
-              )}
-            </>
-          )}
-        </View>
-
-        {/* Submit Action Button */}
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={activeTab === 'phone' ? () => setShowModal(true) : handleRegister}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={styles.buttonText}>
-              {activeTab === 'phone'
-                ? 'Sign in'
-                : emailMode === 'signin'
-                ? 'Sign in'
-                : 'Register & Sign In'}
-            </Text>
-          )}
-        </TouchableOpacity>
-
-        <View style={{ alignItems: 'center', marginVertical: 20 }}>
-          <Text style={{ color: '#6b7280' }}>or continue with</Text>
-        </View>
-
-        {/* Social Login */}
-        <View style={styles.socialRow}>
-          <TouchableOpacity style={styles.socialButton}>
-            <Text style={{ fontSize: 24 }}>G</Text>
-            <Text style={{ marginLeft: 8, fontWeight: '500' }}>Google</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.socialButton}>
-            <Text style={{ fontSize: 24 }}>🍎</Text>
-            <Text style={{ marginLeft: 8, fontWeight: '500' }}>Apple</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Dynamic Auth Toggle Link */}
-        <TouchableOpacity 
-          style={{ marginTop: 24, alignItems: 'center' }}
-          onPress={() => {
-            if (activeTab === 'phone') {
-              setActiveTab('email');
-              setEmailMode('signup');
-            } else {
-              setEmailMode(emailMode === 'signin' ? 'signup' : 'signin');
-            }
-          }}
-        >
-          <Text style={{ color: '#6b7280' }}>
-            {activeTab === 'phone' ? (
-              <>New user? <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Create account</Text></>
-            ) : emailMode === 'signin' ? (
-              <>New to Email Portal? <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Create account</Text></>
-            ) : (
-              <>Already have an account? <Text style={{ color: Colors.primary, fontWeight: 'bold' }}>Sign In</Text></>
-            )}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-
-      {/* Confirmation Modal */}
-      <Modal visible={showModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Complete Registration</Text>
-            <Text style={styles.modalDesc}>We'll save your details for a faster experience.</Text>
-
-            <View style={styles.detailsBox}>
-              <Text style={styles.detailText}>Name: {name}</Text>
-              <Text style={styles.detailText}>District: {district}</Text>
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setShowModal(false)} style={styles.cancelButton}>
-                <Text style={styles.cancelText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.confirmButton}
-                onPress={handleRegister}
-                disabled={loading}
-              >
-                {loading ? <ActivityIndicator color="white" /> : <Text style={styles.confirmText}>Save & Register</Text>}
-              </TouchableOpacity>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <View style={styles.logo}>
+              <Text style={styles.logoText}>OL</Text>
             </View>
           </View>
+
+          <Text style={styles.title}>Create your account</Text>
+          <Text style={styles.subtitle}>Join OfferApp — discover deals across Sri Lanka</Text>
+
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar} />
+          </View>
+
+          <Text style={styles.sectionTitle}>PERSONAL INFO</Text>
+
+          <Text style={styles.fieldLabel}>FULL NAME</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              placeholder=""
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+
+          <Text style={styles.fieldLabel}>CONTACT</Text>
+          <View style={styles.contactTabs}>
+            <TouchableOpacity style={[styles.tab, contactMethod === 'email' ? styles.activeTab : null]} onPress={() => setContactMethod('email')}>
+              <Text style={contactMethod === 'email' ? styles.activeTabText : styles.inactiveTabText}>Email</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.tab, contactMethod === 'phone' ? styles.activeTab : null]} onPress={() => setContactMethod('phone')}>
+              <Text style={contactMethod === 'phone' ? styles.activeTabText : styles.inactiveTabText}>Phone</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.fieldLabel}>{contactMethod === 'email' ? 'EMAIL ADDRESS' : 'PHONE NUMBER'}</Text>
+          <View style={styles.inputContainer}>
+            {contactMethod === 'email' && (
+              <TextInput
+                placeholder=""
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholderTextColor="#9ca3af"
+              />
+            )}
+            {contactMethod === 'phone' && (
+              <TextInput
+                placeholder="e.g. 0712345678"
+                style={styles.input}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+                placeholderTextColor="#9ca3af"
+              />
+            )}
+          </View>
+
+          <Text style={styles.sectionTitle}>SECURITY</Text>
+
+          <Text style={styles.fieldLabel}>PASSWORD</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              placeholder="Min 8 characters"
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              placeholderTextColor="#9ca3af"
+            />
+            <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+              <Ionicons name={showPassword ? 'eye' : 'eye-off'} size={20} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.fieldLabel}>CONFIRM PASSWORD</Text>
+          <View style={styles.inputContainer}>
+            <TextInput
+              placeholder="Repeat password"
+              style={styles.input}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              placeholderTextColor="#9ca3af"
+            />
+            <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+              <Ionicons name={showConfirmPassword ? 'eye' : 'eye-off'} size={20} color="#9ca3af" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.sectionTitle}>DISTRICT</Text>
+          <Text style={styles.fieldLabel}>YOUR DISTRICT</Text>
+          <View style={styles.inputContainer}>
+            <Picker
+              selectedValue={district}
+              onValueChange={setDistrict}
+              style={styles.picker}
+              dropdownIconColor="#a855f7"
+            >
+              <Picker.Item label="Select your district" value="" color="#aaaaaa" />
+              {districts.map((dist) => (
+                <Picker.Item key={dist} label={dist} value={dist} color="#ffffff" />
+              ))}
+            </Picker>
+          </View>
+
+          <View style={styles.termsContainer}>
+            <Checkbox
+              value={agreedToTerms}
+              onValueChange={setAgreedToTerms}
+              color={agreedToTerms ? Colors.primary : undefined}
+            />
+            <Text style={styles.termsText}>
+              I agree to the{' '}
+              <Text style={styles.linkHighlight}>Terms of Service</Text> and{' '}
+              <Text style={styles.linkHighlight}>Privacy Policy</Text>
+            </Text>
+          </View>
+
+          <TouchableOpacity style={registrationSuccess ? styles.buttonSuccess : styles.button} onPress={handleRegister} disabled={loading || registrationSuccess}>
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <View style={styles.buttonContent}>
+                <Ionicons name={registrationSuccess ? "checkmark-circle" : "person-add"} size={20} color="white" />
+                <Text style={styles.buttonText}>{registrationSuccess ? 'Account Created' : 'Create Account'}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.link} onPress={() => router.replace('/(tabs)/login')}>
+            <Text style={styles.linkText}>
+              Already have an account? <Text style={styles.linkHighlight}>Sign In</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 14,
-    padding: 4,
-    marginBottom: 28,
-  },
-  tabButton: {
-    flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderRadius: 10,
-  },
-  tabButtonActive: {
-    backgroundColor: '#ffffff',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  tabTextActive: {
-    color: Colors.primary,
-  },
-  scrollContent: {
-    padding: 24,
-  },
-  header: {
-    marginTop: 20,
-    marginBottom: 24,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginTop: 4,
-  },
-  languageSelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 32,
-  },
-  langTextActive: {
-    color: Colors.primary,
-    fontWeight: 'bold',
-    marginRight: 16,
-  },
-  langText: {
-    color: '#6b7280',
-    marginRight: 16,
-  },
-  inputGroup: {
-    marginBottom: 24,
-  },
+  root: { flex: 1, backgroundColor: '#0a0a0f' },
+  scrollContent: { flexGrow: 1, padding: 20, alignItems: 'center', justifyContent: 'center' },
+  card: { width: '100%', maxWidth: 420, backgroundColor: '#111118', borderRadius: 28, padding: 24 },
+  logoContainer: { alignItems: 'center', marginBottom: 20 },
+  logo: { width: 56, height: 56, borderRadius: 999, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  logoText: { color: 'white', fontSize: 22, fontWeight: 'bold' },
+  title: { fontSize: 26, fontWeight: '700', color: '#f0f0f8', textAlign: 'center', marginBottom: 6 },
+  subtitle: { fontSize: 15, color: '#8b8b9e', textAlign: 'center', marginBottom: 20 },
+  progressContainer: { flexDirection: 'row', justifyContent: 'center', marginBottom: 30 },
+  progressBar: { width: 80, height: 3, backgroundColor: Colors.primary, borderRadius: 2 },
+  sectionTitle: { color: '#a855f7', fontSize: 13, fontWeight: '600', marginTop: 20, marginBottom: 8 },
+  fieldLabel: { color: '#d1d1d9', fontSize: 13, marginBottom: 6, fontWeight: '500' },
   inputContainer: {
-    backgroundColor: '#f9fafb',
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#1a1a23',
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  icon: {
-    fontSize: 18,
-    marginRight: 12,
-  },
-  input: {
-    flex: 1,
-    fontSize: 16,
-    color: '#111827',
-  },
-  primaryButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  socialRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 24,
-    padding: 24,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  modalDesc: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 20,
-  },
-  detailsBox: {
-    backgroundColor: '#f3f4f6',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  detailText: {
-    fontSize: 15,
-    color: '#374151',
-    marginBottom: 4,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    gap: 16,
-  },
-  cancelButton: {
-    paddingHorizontal: 16,
-  },
-  cancelText: {
-    color: Colors.primary,
-    fontWeight: 'bold',
-  },
-  confirmButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 12,
-  },
-  confirmText: {
-    color: 'white',
-    fontWeight: 'bold',
-  }
+  input: { flex: 1, color: '#e0e0f0', fontSize: 16 },
+  contactTabs: { flexDirection: 'row', backgroundColor: '#1a1a23', borderRadius: 12, padding: 4, marginBottom: 16 },
+  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', borderRadius: 10 },
+  activeTab: { backgroundColor: Colors.primary },
+  activeTabText: { color: 'white', fontWeight: '600' },
+  inactiveTabText: { color: '#9ca3af' },
+  picker: { flex: 1, color: '#ffffff', backgroundColor: '#1a1a23' },
+  termsContainer: { flexDirection: 'row', alignItems: 'flex-start', marginVertical: 16 },
+  termsText: { flex: 1, color: '#9ca3af', fontSize: 14, marginLeft: 10, lineHeight: 20 },
+  linkHighlight: { color: Colors.primary },
+  buttonSuccess: { backgroundColor: 'green', paddingVertical: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
+  buttonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  buttonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  link: { marginTop: 20, alignItems: 'center' },
+  linkText: { color: '#9ca3af', fontSize: 14 },
 });
-

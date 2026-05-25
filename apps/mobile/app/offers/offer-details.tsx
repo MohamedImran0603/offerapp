@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, Image, TouchableOpaci
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { mockData } from '../../src/lib/mockData';
+import { auth } from '../../src/lib/firebase';
 
 const { width } = Dimensions.get('window');
 
@@ -110,7 +111,17 @@ export default function OfferDetailsScreen() {
           <Ionicons name="bookmark-outline" size={20} color="#111827" />
           <Text style={styles.saveBtnText}>Save for Later</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.primaryBtn} onPress={() => router.push('/offers/qr-scanner')}>
+        <TouchableOpacity 
+          style={styles.primaryBtn} 
+          onPress={() => {
+            if (auth.currentUser) {
+              router.push('/offers/qr-scanner');
+            } else {
+              // Redirect to login if guest
+              router.push('/login');
+            }
+          }}
+        >
           <Text style={styles.primaryBtnText}>Use Now</Text>
         </TouchableOpacity>
       </View>

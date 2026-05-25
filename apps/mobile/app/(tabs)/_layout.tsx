@@ -4,11 +4,12 @@ import { Text, View } from 'react-native';
 import { Colors } from '../../src/constants/Colors';
 import { auth, db } from '../../src/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import { User } from 'firebase/auth';
 import LoginScreen from './login';
 
 export default function TabLayout() {
   const [isAdmin, setIsAdmin] = useState(false);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const segments = useSegments();
   const router = useRouter();
 
@@ -47,10 +48,8 @@ export default function TabLayout() {
     }
   }, [isAdmin, segments]);
 
-  if (!user) {
-  return <LoginScreen />;
-}
-
+  // Allow guest browsing by removing the strict auth check here.
+  // Individual actions (like ordering) will prompt for login.
   return (
       <Tabs
         screenOptions={{

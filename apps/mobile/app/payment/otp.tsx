@@ -108,7 +108,7 @@ export default function OTPScreen() {
           {code.map((digit, idx) => (
             <TextInput
               key={idx}
-              ref={el => inputRefs.current[idx] = el}
+              ref={el => { inputRefs.current[idx] = el; }}
               style={[
                 s.otpBox, 
                 error ? s.otpBoxError : (activeIdx === idx || digit) ? s.otpBoxActive : null

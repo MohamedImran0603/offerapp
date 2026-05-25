@@ -1,13 +1,14 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import { useCart } from '../../src/lib/CartContext';
+import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet, ListRenderItemInfo } from 'react-native';
+import { useCart, CartItem } from '../../src/lib/CartContext';
 import { useRouter } from 'expo-router';
+import { auth } from '../../src/lib/firebase';
 
 const CartScreen = () => {
   const { items, removeItem, updateQuantity, total, clearCart } = useCart();
   const router = useRouter();
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: ListRenderItemInfo<CartItem>) => (
     <View style={styles.itemRow}>
       <Image source={{ uri: item.image }} style={styles.image} />
       <View style={styles.info}>
@@ -44,7 +45,13 @@ const CartScreen = () => {
         <Text style={styles.total}>Total: Rs. {total.toLocaleString()}</Text>
         <TouchableOpacity
           style={styles.checkoutBtn}
-          onPress={() => router.push('/payment')}
+          onPress={() => {
+            if (auth.currentUser) {
+              router.push('/payment');
+            } else {
+              router.push('/login');
+            }
+          }}
         >
           <Text style={styles.checkoutBtnText}>Proceed to Checkout</Text>
         </TouchableOpacity>

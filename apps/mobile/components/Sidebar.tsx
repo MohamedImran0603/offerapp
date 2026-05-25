@@ -16,7 +16,7 @@ export default function Sidebar({ onClose }: { onClose: () => void }) {
   const router = useRouter();
 
   const handleNavigate = (route: string) => {
-    router.replace(route);
+    router.replace(route as any);
     onClose();
   };
 

@@ -59,11 +59,26 @@ export default function AdminScreen() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   
   // Support Tickets State
-  const [tickets, setTickets] = useState<SupportTicket[]>([
-    { id: '1', user: 'ravindu@gmail.com', message: 'Unable to view Keells flyer in Gampaha district.', status: 'Open', timestamp: 'Just now' },
-    { id: '2', user: 'imran@gmail.com', message: 'Auth confirmation not loading correctly.', status: 'Resolved', timestamp: '2 hours ago' },
-    { id: '3', user: 'kisoth@gmail.com', message: 'Requesting brand partner clearance onboarding.', status: 'Open', timestamp: '1 day ago' }
-  ]);
+
+  // Import Firebase auth to get current user
+
+
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        setCurrentUser({ name: user.displayName || 'User', email: user.email || '' });
+      } else {
+        setCurrentUser(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  // Remove placeholder tickets array, start empty
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
 
   // Onboarding Form State
   const [onboardName, setOnboardName] = useState('');

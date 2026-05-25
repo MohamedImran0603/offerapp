@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { useCart } from '../../src/lib/CartContext';
 import { luhnCheck } from '../../src/lib/paymentUtils';
 
 const CheckoutScreen = () => {
-  const navigation = useNavigation();
+  const router = useRouter();
   const { total, clearCart } = useCart();
   const [cardNumber, setCardNumber] = useState('');
   const [expiry, setExpiry] = useState('');
@@ -28,7 +28,7 @@ const CheckoutScreen = () => {
     // Mock order placement
     Alert.alert('Success', `Order placed! Total: Rs. ${total.toLocaleString()}`);
     clearCart();
-    navigation.navigate('Home');
+    router.replace('/(tabs)/home');
   };
 
   return (

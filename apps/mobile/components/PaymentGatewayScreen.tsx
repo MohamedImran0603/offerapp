@@ -56,6 +56,7 @@ export default function PaymentGatewayScreen() {
   // Wallet Form State
   const [walletPhone, setWalletPhone] = useState('');
   const [walletPin, setWalletPin] = useState('');
+  const [showPin, setShowPin] = useState(false);
 
   // Errors
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -109,9 +110,9 @@ export default function PaymentGatewayScreen() {
           const walletVal = validateWallet(selectedWallet, walletPhone, finalTotal, walletPin);
           if (!walletVal.isValid) {
             if (walletVal.error?.includes('PIN')) {
-              currentErrors.walletPin = walletVal.error;
+              currentErrors.walletPin = walletVal.error || '';
             } else {
-              currentErrors.walletPhone = walletVal.error;
+              currentErrors.walletPhone = walletVal.error || '';
             }
             hasError = true;
           }
@@ -356,9 +357,12 @@ export default function PaymentGatewayScreen() {
                             value={walletPin}
                             onChangeText={setWalletPin}
                             keyboardType="number-pad"
-                            secureTextEntry
+                            secureTextEntry={!showPin}
                             maxLength={6}
                           />
+                          <TouchableOpacity onPress={() => setShowPin(!showPin)} style={{ paddingHorizontal: 8 }}>
+                            <Ionicons name={showPin ? "eye" : "eye-off"} size={18} color="#94a3b8" />
+                          </TouchableOpacity>
                         </View>
                         {errors.walletPin && <Text style={s.errorText}>{errors.walletPin}</Text>}
                       </View>

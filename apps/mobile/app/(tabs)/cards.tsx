@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert, ScrollView, ListRenderItemInfo } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../src/constants/Colors';
-import { useCards } from '../../src/lib/CardContext';
+import { useCards, CardInfo } from '../../src/lib/CardContext';
 import { luhnCheck } from '../../src/lib/paymentUtils';
 
 export default function CardsScreen() {
@@ -39,7 +39,7 @@ export default function CardsScreen() {
     }
   };
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: ListRenderItemInfo<CardInfo>) => (
     <View style={styles.cardItem}>
       <Text style={styles.cardNumber}>•••• •••• •••• {item.number.slice(-4)}</Text>
       <Text style={styles.cardInfo}>{item.brand} • {item.holderName}</Text>

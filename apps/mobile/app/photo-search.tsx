@@ -42,7 +42,7 @@ export default function PhotoSearchScreen() {
 
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
-      processImageOCR(result.assets[0].base64);
+      processImageOCR(result.assets[0].base64 ?? undefined);
     }
   };
 
@@ -63,7 +63,7 @@ export default function PhotoSearchScreen() {
 
     if (!result.canceled) {
       setSelectedImage(result.assets[0].uri);
-      processImageOCR(result.assets[0].base64);
+      processImageOCR(result.assets[0].base64 ?? undefined);
     }
   };
 

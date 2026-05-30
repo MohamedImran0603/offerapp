@@ -38,7 +38,7 @@ export default function PaymentStatusScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#f8fafc" />
+          <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>{isSuccess ? 'Payment Successful' : 'Payment Failed'}</Text>
         <View style={{ width: 24 }} />
@@ -116,10 +116,10 @@ export default function PaymentStatusScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0B0D17' },
+  root: { flex: 1, backgroundColor: '#ffffff' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#f8fafc' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#111827' },
   
   content: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 24, paddingBottom: 40 },
   
@@ -137,19 +137,19 @@ const s = StyleSheet.create({
     borderColor: 'rgba(16, 185, 129, 0.2)'
   },
   
-  title: { fontSize: 24, fontWeight: '700', color: '#f8fafc', marginBottom: 12, textAlign: 'center' },
-  message: { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 22, marginBottom: 40 },
+  title: { fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 12, textAlign: 'center' },
+  message: { fontSize: 14, color: '#4b5563', textAlign: 'center', lineHeight: 22, marginBottom: 40 },
   
-  receiptBox: { width: '100%', paddingTop: 20, borderTopWidth: 1, borderTopColor: '#1F223B' },
+  receiptBox: { width: '100%', paddingTop: 20, borderTopWidth: 1, borderTopColor: '#e5e7eb' },
   receiptRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  receiptLabel: { color: '#94a3b8', fontSize: 13 },
+  receiptLabel: { color: '#6b7280', fontSize: 13 },
   receiptValueGreen: { color: '#10b981', fontSize: 13, fontWeight: '600' },
-  receiptValue: { color: '#e2e8f0', fontSize: 13, fontWeight: '500' },
+  receiptValue: { color: '#1f2937', fontSize: 13, fontWeight: '500' },
   
   footer: { paddingHorizontal: 24, paddingBottom: 40 },
   primaryBtn: { backgroundColor: '#7C3AED', paddingVertical: 18, borderRadius: 14, alignItems: 'center', marginBottom: 16 },
   primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   
   secondaryBtn: { paddingVertical: 16, alignItems: 'center' },
-  secondaryBtnText: { color: '#A78BFA', fontSize: 15, fontWeight: '600' },
+  secondaryBtnText: { color: '#7c3aed', fontSize: 15, fontWeight: '600' },
 });

@@ -39,8 +39,9 @@ export default function LoginPage() {
         });
       }
       // AuthProvider will automatically handle the redirect
-    } catch (err: any) {
-      setError(err.message || `Failed to ${isLogin ? 'log in' : 'register'}.`);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg || `Failed to ${isLogin ? 'log in' : 'register'}.`);
     } finally {
       setLoading(false);
     }
@@ -53,8 +54,9 @@ export default function LoginPage() {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
       // AuthProvider will automatically handle the redirect
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in with Google.");
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setError(errorMsg || "Failed to sign in with Google.");
     } finally {
       setLoading(false);
     }

@@ -9,6 +9,7 @@ import RoleGuard from "@/components/RoleGuard";
 
 export default function AdminSettingsPage() {
   const { user, role } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [logs, setLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(true);
 

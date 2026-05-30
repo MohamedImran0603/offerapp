@@ -38,7 +38,7 @@ export default function Sidebar({ onClose }: { onClose: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f3e8ff', // soft pastel background
+    backgroundColor: '#ffffff',
     paddingTop: 80,
     paddingHorizontal: 20,
   },

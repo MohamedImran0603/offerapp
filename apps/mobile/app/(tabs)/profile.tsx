@@ -30,7 +30,7 @@ export default function ProfileScreen() {
           if (userDoc.exists()) {
             setCurrentUser({ uid: user.uid, ...userDoc.data() });
           } else {
-            setCurrentUser({ uid: user.uid, username: user.email?.split('@')[0] || 'User', email: user.email, district: 'Colombo' });
+            setCurrentUser({ uid: user.uid, name: user.email?.split('@')[0] || 'User', email: user.email, district: 'Colombo' });
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -166,8 +166,8 @@ export default function ProfileScreen() {
                 </View>
               </View>
               <View style={styles.profileDetails}>
-                <Text style={styles.profileName}>{currentUser?.username || 'Guest'}</Text>
-                <Text style={styles.profilePhone}>{currentUser?.phone || '+94 77 123 4567'}</Text>
+                <Text style={styles.profileName}>{currentUser?.name || 'Guest'}</Text>
+                <Text style={styles.profilePhone}>{currentUser?.phone || 'No phone number'}</Text>
                 <Text style={styles.profileEmail}>{currentUser?.email || 'No email'}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#ffffff" style={{ opacity: 0.7 }} />
@@ -180,14 +180,14 @@ export default function ProfileScreen() {
         <View style={styles.walletCard}>
           <View style={styles.walletCol}>
             <Text style={styles.walletLabel}>Balance</Text>
-            <Text style={styles.walletValue}>Rs. 2,450.00</Text>
+            <Text style={styles.walletValue}>Rs. {currentUser?.balance ? Number(currentUser.balance).toFixed(2) : '0.00'}</Text>
           </View>
           <View style={styles.walletDivider} />
           <View style={styles.walletCol}>
             <Text style={styles.walletLabel}>Coins</Text>
             <View style={styles.coinsRow}>
               <Ionicons name="server" size={16} color="#fbbf24" style={{ marginRight: 4 }} />
-              <Text style={styles.walletValue}>2,450</Text>
+              <Text style={styles.walletValue}>{currentUser?.coins || '0'}</Text>
             </View>
           </View>
         </View>
@@ -200,28 +200,28 @@ export default function ProfileScreen() {
               <Ionicons name="heart" size={20} color="#ef4444" />
             </View>
             <Text style={styles.activityLabel}>Saved Offers</Text>
-            <Text style={styles.activityValue}>{savedCount || 24}</Text>
+            <Text style={styles.activityValue}>{savedCount || 0}</Text>
           </View>
           <View style={styles.activityItem}>
             <View style={[styles.activityIconBg, { backgroundColor: '#dcfce7' }]}>
               <Ionicons name="eye" size={20} color="#22c55e" />
             </View>
             <Text style={styles.activityLabel}>Viewed</Text>
-            <Text style={styles.activityValue}>58</Text>
+            <Text style={styles.activityValue}>{currentUser?.viewedCount || 0}</Text>
           </View>
           <View style={styles.activityItem}>
             <View style={[styles.activityIconBg, { backgroundColor: '#f3e8ff' }]}>
               <Ionicons name="ticket" size={20} color="#a855f7" />
             </View>
             <Text style={styles.activityLabel}>My Coupons</Text>
-            <Text style={styles.activityValue}>12</Text>
+            <Text style={styles.activityValue}>{currentUser?.couponsCount || 0}</Text>
           </View>
           <View style={styles.activityItem}>
             <View style={[styles.activityIconBg, { backgroundColor: '#fef3c7' }]}>
               <Ionicons name="star" size={20} color="#f59e0b" />
             </View>
             <Text style={styles.activityLabel}>Reviews</Text>
-            <Text style={styles.activityValue}>7</Text>
+            <Text style={styles.activityValue}>{currentUser?.reviewsCount || 0}</Text>
           </View>
         </View>
 
@@ -269,7 +269,7 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#faf5ff',
+    backgroundColor: '#ffffff',
   },
   topHeader: {
     flexDirection: 'row',

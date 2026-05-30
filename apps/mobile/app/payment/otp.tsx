@@ -83,7 +83,7 @@ export default function OTPScreen() {
       {/* Header */}
       <View style={s.header}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#f8fafc" />
+          <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={s.headerTitle}>OTP Verification</Text>
         <View style={{ width: 24 }} />
@@ -93,7 +93,7 @@ export default function OTPScreen() {
         
         {/* Floating Icon Box */}
         <View style={s.iconWrapper}>
-          <MaterialCommunityIcons name="cellphone-message" size={40} color="#A78BFA" />
+          <MaterialCommunityIcons name="cellphone-message" size={40} color="#7c3aed" />
           <View style={s.iconBadge}>
             <Text style={s.iconBadgeText}>OTP</Text>
           </View>
@@ -146,39 +146,39 @@ export default function OTPScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0B0D17' },
+  root: { flex: 1, backgroundColor: '#ffffff' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16 },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#f8fafc' },
+  headerTitle: { fontSize: 18, fontWeight: '600', color: '#111827' },
   
   content: { flex: 1, paddingHorizontal: 24, paddingTop: 40, alignItems: 'center' },
   
   iconWrapper: { 
     width: 90, height: 90, borderRadius: 45, 
-    backgroundColor: '#131524', 
+    backgroundColor: '#f5f3ff', 
     alignItems: 'center', justifyContent: 'center', 
     marginBottom: 40,
-    borderWidth: 1, borderColor: '#1F223B',
-    shadowColor: '#7C3AED', shadowOpacity: 0.3, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }
+    borderWidth: 1, borderColor: '#e9d5ff',
+    shadowColor: '#7C3AED', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }
   },
-  iconBadge: { position: 'absolute', bottom: -10, backgroundColor: '#2E1A5E', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#7C3AED' },
-  iconBadgeText: { color: '#e2e8f0', fontSize: 11, fontWeight: '600' },
+  iconBadge: { position: 'absolute', bottom: -10, backgroundColor: '#7C3AED', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: '#7C3AED' },
+  iconBadgeText: { color: '#ffffff', fontSize: 11, fontWeight: '600' },
   
-  title: { fontSize: 24, fontWeight: '700', color: '#f8fafc', marginBottom: 12 },
-  subtitle: { fontSize: 14, color: '#94a3b8', textAlign: 'center', lineHeight: 22, marginBottom: 40 },
+  title: { fontSize: 24, fontWeight: '700', color: '#111827', marginBottom: 12 },
+  subtitle: { fontSize: 14, color: '#4b5563', textAlign: 'center', lineHeight: 22, marginBottom: 40 },
   
   otpContainer: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', marginBottom: 20 },
   otpBox: { 
     width: 48, height: 56, 
-    backgroundColor: '#131524', 
-    borderRadius: 8, borderWidth: 1, borderColor: '#1F223B', 
-    color: '#f8fafc', fontSize: 24, fontWeight: '600', textAlign: 'center' 
+    backgroundColor: '#f9fafb', 
+    borderRadius: 8, borderWidth: 1, borderColor: '#e5e7eb', 
+    color: '#111827', fontSize: 24, fontWeight: '600', textAlign: 'center' 
   },
-  otpBoxActive: { borderColor: '#7C3AED', backgroundColor: '#2E1A5E' },
+  otpBoxActive: { borderColor: '#7C3AED', backgroundColor: '#f3e8ff' },
   otpBoxError: { borderColor: '#ef4444' },
   errorText: { color: '#ef4444', fontSize: 13, marginBottom: 20, fontWeight: '500' },
   
-  resendText: { fontSize: 14, color: '#64748b', marginTop: 10 },
+  resendText: { fontSize: 14, color: '#6b7280', marginTop: 10 },
   
   footer: { paddingHorizontal: 24, paddingBottom: 40 },
   verifyBtn: { width: '100%', backgroundColor: '#7C3AED', borderRadius: 14, paddingVertical: 18, alignItems: 'center' },

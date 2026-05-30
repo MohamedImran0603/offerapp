@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, Image, SafeAreaView, TouchableOpacity, StyleSheet, FlatList, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { Colors } from '../src/constants/Colors';
 
 const SLIDES = [
@@ -27,7 +27,11 @@ const SLIDES = [
   }
 ];
 
-export default function WelcomeScreen() {
+export default function IndexRedirect() {
+  return <Redirect href="/(tabs)/home" />;
+}
+
+export function WelcomeScreen() {
   const router = useRouter();
   const { width: windowWidth } = useWindowDimensions();
   const [activeSlide, setActiveSlide] = useState(0);

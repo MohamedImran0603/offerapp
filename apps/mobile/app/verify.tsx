@@ -93,11 +93,13 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 120,
     height: 120,
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#f5f3ff', // Modern clean light violet background
     borderRadius: 60,
     marginBottom: 40, 
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#c084fc', // Vibrant accent border
   },
   dot: {
     position: 'absolute', 
@@ -108,17 +110,17 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary, 
     borderRadius: 8,
     borderWidth: 2,
-    borderColor: 'white'
+    borderColor: '#ffffff' // Crisp white border on a white screen
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#111827', // High contrast dark color
     marginBottom: 16,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#4b5563', // Clean readable gray
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
@@ -147,12 +149,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16, 
     borderRadius: 16, 
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e9d5ff', // Elegant subtle purple border
+    backgroundColor: '#ffffff', // Crisp white button
     alignItems: 'center',
     marginBottom: 16,
   },
   secondaryButtonText: {
-    color: '#374151',
+    color: '#7c3aed', // Highly readable purple text
     fontSize: 16,
     fontWeight: '600',
   },
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   logoutText: {
-    color: '#6b7280',
+    color: '#6b7280', // High contrast dark gray
     fontSize: 14,
     fontWeight: '500',
   }

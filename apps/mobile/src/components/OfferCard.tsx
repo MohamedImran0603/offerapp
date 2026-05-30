@@ -1,5 +1,8 @@
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Colors } from '../../constants/Colors';
+import { Shadows } from '../../theme/shadows';
 
 interface OfferCardProps {
   offer: any;
@@ -13,7 +16,6 @@ export function OfferCard({ offer }: OfferCardProps) {
     if (!img) {
       return { uri: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500' };
     }
-    // Explicitly support remote web URLs and direct Base64 inline strings
     if (img.startsWith('http://') || img.startsWith('https://') || img.startsWith('data:image/')) {
       return { uri: img };
     }
@@ -21,74 +23,24 @@ export function OfferCard({ offer }: OfferCardProps) {
   };
 
   return (
-    <TouchableOpacity 
-      style={{
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
-        padding: 16,
-        marginBottom: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-      }}
+    <TouchableOpacity
+      style={styles.card}
       onPress={() => router.push(`/offer/${offer.id}`)}
     >
-      <View style={{ flexDirection: 'row' }}>
-        <Image 
-          source={getImageSource()} 
-          style={{ width: 96, height: 96, borderRadius: 12, backgroundColor: '#f1f5f9' }} 
-        />
-        
-        <View style={{
-          flex: 1,
-          marginLeft: 16,
-          justifyContent: 'space-between',
-        }}>
+      <View style={styles.contentRow}>
+        <Image source={getImageSource()} style={styles.image} />
+        <View style={styles.infoColumn}>
           <View>
-            <Text style={{
-              fontSize: 12,
-              fontWeight: 'bold',
-              color: '#ff4757',
-              marginBottom: 4,
-            }}>{offer.store} • {offer.distanceKm}km</Text>
-            <Text style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              color: '#1e293b',
-            }} numberOfLines={2}>{offer.title}</Text>
+            <Text style={styles.storeText}>{offer.store} • {offer.distanceKm}km</Text>
+            <Text style={styles.titleText} numberOfLines={2}>{offer.title}</Text>
           </View>
-          
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'flex-end',
-            justifyContent: 'space-between',
-            marginTop: 8,
-          }}>
+          <View style={styles.priceRow}>
             <View>
-               <Text style={{
-                 fontSize: 18,
-                 fontWeight: 'bold',
-                 color: '#1e293b',
-               }}>Rs {offer.newPrice}</Text>
-               <Text style={{
-                 fontSize: 14,
-                 color: '#94a3b8',
-                 textDecorationLine: 'line-through',
-               }}>Rs {offer.oldPrice}</Text>
+              <Text style={styles.newPrice}>Rs {offer.newPrice}</Text>
+              <Text style={styles.oldPrice}>Rs {offer.oldPrice}</Text>
             </View>
-            <View style={{
-              backgroundColor: '#fee2e2',
-              paddingHorizontal: 8,
-              paddingVertical: 4,
-              borderRadius: 8,
-            }}>
-              <Text style={{
-                fontSize: 12,
-                fontWeight: 'bold',
-                color: '#ef4444',
-              }}>-{offer.discountPercent}%</Text>
+            <View style={styles.discountBadge}>
+              <Text style={styles.discountText}>-{offer.discountPercent}%</Text>
             </View>
           </View>
         </View>
@@ -96,3 +48,65 @@ export function OfferCard({ offer }: OfferCardProps) {
     </TouchableOpacity>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: Colors.cardBackground,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    ...Shadows.card,
+  },
+  contentRow: {
+    flexDirection: 'row',
+  },
+  image: {
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+  },
+  infoColumn: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'space-between',
+  },
+  storeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: Colors.textSecondary,
+    marginBottom: 4,
+  },
+  titleText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.textPrimary,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  newPrice: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.textPrimary,
+  },
+  oldPrice: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textDecorationLine: 'line-through',
+  },
+  discountBadge: {
+    backgroundColor: Colors.discountBadge,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  discountText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: Colors.buttonDanger,
+  },
+});

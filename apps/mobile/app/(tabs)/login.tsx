@@ -50,7 +50,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor="#0d0d14" />
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       {/* Ambient glow layer (decorative) */}
       <View style={styles.glowTop} pointerEvents="none" />
@@ -212,38 +212,38 @@ const NAV_ITEMS = [
 ];
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#0d0d14' },
-  glowTop: { position: 'absolute', top: -120, alignSelf: 'center', width: 400, height: 280, borderRadius: 200, backgroundColor: 'rgba(168,85,247,0.10)' },
-  glowBottom: { position: 'absolute', bottom: -80, right: -80, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(99,102,241,0.07)' },
+  root: { flex: 1, backgroundColor: '#ffffff' },
+  glowTop: { position: 'absolute', top: -120, alignSelf: 'center', width: 400, height: 280, borderRadius: 200, backgroundColor: 'rgba(168,85,247,0.06)' },
+  glowBottom: { position: 'absolute', bottom: -80, right: -80, width: 260, height: 260, borderRadius: 130, backgroundColor: 'rgba(99,102,241,0.04)' },
   scrollContent: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20, paddingVertical: 40 },
-  card: { width: '100%', maxWidth: 420, backgroundColor: '#16161f', borderWidth: 1, borderColor: '#2a2a3a', borderRadius: 24, paddingHorizontal: 28, paddingVertical: 36 },
+  card: { width: '100%', maxWidth: 420, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e9d5ff', borderRadius: 24, paddingHorizontal: 28, paddingVertical: 36, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 16, elevation: 6 },
   cardHeader: { alignItems: 'center', marginBottom: 28 },
-  brandLogo: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#a855f7', alignItems: 'center', justifyContent: 'center', marginBottom: 18, shadowColor: '#a855f7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 12, elevation: 8 },
+  brandLogo: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#7B2FF7', alignItems: 'center', justifyContent: 'center', marginBottom: 18, shadowColor: '#7B2FF7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
   brandLogoText: { color: '#ffffff', fontSize: 20, fontWeight: '700', letterSpacing: -0.5 },
-  cardTitle: { color: '#f0f0f8', fontSize: 22, fontWeight: '700', letterSpacing: -0.3, marginBottom: 6, textAlign: 'center' },
-  cardSubtitle: { color: '#6b6b80', fontSize: 13.5, textAlign: 'center', lineHeight: 20 },
-  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#1e1e2a', borderWidth: 1, borderColor: '#2e2e40', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 20 },
-  googleIconWrap: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
+  cardTitle: { color: '#111827', fontSize: 22, fontWeight: '700', letterSpacing: -0.3, marginBottom: 6, textAlign: 'center' },
+  cardSubtitle: { color: '#6b7280', fontSize: 13.5, textAlign: 'center', lineHeight: 20 },
+  googleBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 12, paddingVertical: 13, paddingHorizontal: 20 },
+  googleIconWrap: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e5e7eb' },
   googleIconText: { fontSize: 13, fontWeight: '700', color: '#4285F4' },
-  googleBtnText: { color: '#d0d0e0', fontSize: 14, fontWeight: '500' },
+  googleBtnText: { color: '#374151', fontSize: 14, fontWeight: '500' },
   divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20, gap: 12 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: '#22222f' },
-  dividerText: { color: '#44445a', fontSize: 12, fontWeight: '500', letterSpacing: 0.5 },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#e5e7eb' },
+  dividerText: { color: '#9ca3af', fontSize: 12, fontWeight: '500', letterSpacing: 0.5 },
   fieldGroup: { marginBottom: 14 },
-  fieldLabel: { color: '#60607a', fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 7 },
-  fieldInput: { backgroundColor: '#111119', borderWidth: 1, borderColor: '#252535', borderRadius: 11, paddingHorizontal: 16, paddingVertical: 12, color: '#e0e0f0', fontSize: 14, outlineStyle: 'none' as any },
+  fieldLabel: { color: '#6b21a8', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 7 },
+  fieldInput: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 11, paddingHorizontal: 16, paddingVertical: 12, color: '#111827', fontSize: 14, outlineStyle: 'none' as any },
   passwordWrap: { position: 'relative' },
   eyeBtn: { position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: 4 },
   eyeIcon: { fontSize: 16 },
   forgotRow: { alignItems: 'flex-end', marginTop: 2, marginBottom: 20 },
   forgotLink: { color: '#7c3aed', fontSize: 12.5, fontWeight: '500' },
   errorText: { color: '#ef4444', textAlign: 'center', marginBottom: 12, fontSize: 13.5, fontWeight: '500' },
-  signInBtn: { backgroundColor: '#a855f7', borderRadius: 12, paddingVertical: 14, alignItems: 'center', shadowColor: '#a855f7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 10, elevation: 6 },
+  signInBtn: { backgroundColor: '#7B2FF7', borderRadius: 12, paddingVertical: 14, alignItems: 'center', shadowColor: '#7B2FF7', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 6 },
   signInBtnText: { color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.2 },
   signupRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 20 },
-  signupText: { color: '#4a4a62', fontSize: 13.5 },
+  signupText: { color: '#4b5563', fontSize: 13.5 },
   signupLink: { color: '#a855f7', fontSize: 13.5, fontWeight: '500' },
-  bottomNav: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#f3e8ff', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, marginTop: 28, width: '100%', maxWidth: 420 },
+  bottomNav: { flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center', backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e9d5ff', borderRadius: 20, paddingVertical: 12, paddingHorizontal: 16, marginTop: 28, width: '100%', maxWidth: 420 },
   navItem: { alignItems: 'center', gap: 4, flex: 1 },
   navIcon: { fontSize: 20, opacity: 0.4 },
   navIconActive: { opacity: 1 },

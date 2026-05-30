@@ -62,7 +62,7 @@ const uniqueProducts = [
   { name: 'Apple iPhone 15 128GB', sub: 'Titanium Design · A16 Bionic', cat: 'Electronics' },
   { name: 'Samsung Galaxy S24 Ultra', sub: '200MP Camera · Snapdragon Gen 3', cat: 'Electronics' },
   { name: 'Sony PlayStation 5 Slim', sub: '4K HDR · 1TB SSD', cat: 'Electronics' },
-  
+
   // Food - Grocery
   { name: 'Keells Super Savers Pack', sub: 'Weekly Grocery Essentials Bundle', cat: 'Food - Grocery' },
   { name: 'Cargills FoodCity Specials', sub: 'Household Grocery Basket', cat: 'Food - Grocery' },
@@ -217,7 +217,7 @@ const defaultImages = [
 export const generateMockFlyers = () => {
   const mockDists = districts.slice(1);
   const allMocks = [];
-  
+
   for (let i = 0; i < 180; i++) {
     const template = uniqueProducts[i % uniqueProducts.length];
     const brand = brands[i % brands.length].name;
@@ -230,7 +230,7 @@ export const generateMockFlyers = () => {
     discountPercents.forEach(perc => {
       offerPrices[perc] = Math.round(oldPrice * (1 - perc / 100));
     });
-    
+
     // Select category-specific images dynamically
     const categoryPics = categoryImages[template.cat] || defaultImages;
     const chosenImage = categoryPics[i % categoryPics.length];

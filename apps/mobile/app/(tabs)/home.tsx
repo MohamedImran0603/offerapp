@@ -11,6 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { mockData, districts, mainCategories, brands } from '../../src/lib/mockData';
 import * as ImagePicker from 'expo-image-picker';
 import { useCart } from '../../src/lib/CartContext';
+import Sidebar from '../../components/Sidebar';
 
 const topTabs = [
   { name: 'Top pick', icon: '📢' },
@@ -33,6 +34,7 @@ export default function HomeScreen() {
     'Electronics': 1
   });
   const [lastSearchedTerm, setLastSearchedTerm] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   const { items: cartItems } = useCart();
   const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -147,11 +149,11 @@ export default function HomeScreen() {
           if (userDoc.exists()) {
             setCurrentUser({ uid: user.uid, ...userDoc.data() });
           } else {
-            setCurrentUser({ uid: user.uid, username: user.email?.split('@')[0] || 'User' });
+            setCurrentUser({ uid: user.uid, name: user.email?.split('@')[0] || 'User' });
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
-          setCurrentUser({ uid: user.uid, username: user.email?.split('@')[0] || 'User' });
+          setCurrentUser({ uid: user.uid, name: user.email?.split('@')[0] || 'User' });
         }
       } else {
         setCurrentUser(null);
@@ -486,48 +488,76 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoRow}>
+          {/* Hamburger Menu Icon */}
+          <TouchableOpacity onPress={() => setIsSidebarOpen(true)} style={styles.hamburgerBtn}>
+            <Ionicons name="menu" size={28} color="#ffffff" />
+          </TouchableOpacity>
+
           <View style={styles.logoWrapper}>
             <Image source={require('../../assets/images/logo.png')} style={styles.headerLogo} />
           </View>
+          
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <Text style={styles.brandTitle}>Offer Lanka</Text>
-            <TouchableOpacity style={styles.districtSelector} onPress={() => setDistrictModalVisible(true)}>
-              <Ionicons name="location" size={14} color="#ef4444" />
-              <Text style={styles.districtText}>{selectedDistrict}</Text>
-              <Ionicons name="chevron-down" size={12} color="#6b21a8" style={styles.districtChevron} />
-            </TouchableOpacity>
+            <Text style={styles.brandSubtitle}>Best Offers, Save More</Text>
           </View>
-          <View style={[styles.headerRight, { gap: 12 }]}>
+
+          <View style={styles.headerRight}>
             <TouchableOpacity style={styles.notifyContainer} onPress={() => router.push('/CartScreen')}>
-              <Ionicons name="cart" size={28} color="#ea580c" />
+              <Ionicons name="cart-outline" size={26} color="#ffffff" />
               {cartItemCount > 0 && (
-                <View style={[styles.notifyBadge, { backgroundColor: '#ea580c' }]}>
+                <View style={styles.notifyBadge}>
                   <Text style={styles.notifyCount}>{cartItemCount}</Text>
                 </View>
               )}
             </TouchableOpacity>
+
             <TouchableOpacity style={styles.notifyContainer}>
-              <Ionicons name="notifications" size={28} color="#6b21a8" />
-              <View style={styles.notifyBadge}><Text style={styles.notifyCount}>5</Text></View>
+              <Ionicons name="notifications-outline" size={26} color="#ffffff" />
+              <View style={styles.notifyBadge}>
+                <Text style={styles.notifyCount}>5</Text>
+              </View>
             </TouchableOpacity>
-            {currentUser ? (
-              <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/profile')}>
-                <Ionicons name="person-circle" size={16} color="#fff" style={{ marginRight: 6 }} />
-                <Text style={styles.loginBtnText}>{currentUser.username}</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/login')}>
-                <Text style={styles.loginBtnText}>Login/Register</Text>
-              </TouchableOpacity>
-            )}
+
+            {/* Profile Avatar Section */}
+            <TouchableOpacity style={styles.profileSection} onPress={() => router.push('/profile')}>
+              {currentUser?.profilePic ? (
+                <Image
+                  source={{ uri: currentUser.profilePic }}
+                  style={styles.avatarImage}
+                />
+              ) : (
+                <View style={[styles.avatarImage, { backgroundColor: '#c084fc', justifyContent: 'center', alignItems: 'center' }]}>
+                  <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 15 }}>
+                    {(currentUser?.name || 'R').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+              )}
+              <Text style={styles.profileName} numberOfLines={1}>
+                {currentUser?.name || 'Rajan'}
+              </Text>
+              <Ionicons name="chevron-down" size={12} color="#ffffff" style={{ marginLeft: 2 }} />
+            </TouchableOpacity>
           </View>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchRow}>
+        {/* Second Row: Location Pill + Search Capsule */}
+        <View style={styles.secondRow}>
+          {/* Location selector pill */}
+          <TouchableOpacity style={styles.locationPill} onPress={() => setDistrictModalVisible(true)}>
+            <Ionicons name="location" size={16} color="#c084fc" />
+            <Text style={styles.locationPillText} numberOfLines={1}>
+              {selectedDistrict === 'Whole Country' ? 'Colombo, Sri Lanka' : selectedDistrict}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color="#ffffff" style={{ marginLeft: 2 }} />
+          </TouchableOpacity>
+
+          {/* Search Bar capsule */}
           <View style={styles.searchBar}>
+            <Ionicons name="search" size={18} color="#c084fc" style={{ marginRight: 8 }} />
             <TextInput
               placeholder="Find all shopping flyers..."
+              placeholderTextColor="rgba(255,255,255,0.6)"
               style={styles.searchInput}
               value={search}
               onChangeText={setSearch}
@@ -535,16 +565,13 @@ export default function HomeScreen() {
               returnKeyType="search"
             />
             <TouchableOpacity
-              onPress={() => router.push('/offers/qr-scanner')}
-              style={{ padding: 10 }}
-              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+              onPress={handleCameraPress} // triggers AI Image Search scan menu modal
+              style={styles.cameraIconBtn}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Ionicons name="camera-outline" size={26} color="#6b21a8" />
+              <Ionicons name="camera" size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.searchBtn} onPress={() => handleSearchSubmit(search)}>
-            <Text style={styles.searchBtnText}>Search</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -718,6 +745,21 @@ export default function HomeScreen() {
       >
         <Ionicons name="chatbubble-ellipses" size={28} color="#ffffff" />
       </TouchableOpacity>
+
+      {/* Sidebar Modal */}
+      <Modal visible={isSidebarOpen} transparent animationType="slide">
+        <View style={styles.sidebarOverlay}>
+          <View style={styles.sidebarContent}>
+            <View style={styles.sidebarHeader}>
+              <Text style={styles.sidebarTitle}>Menu</Text>
+              <TouchableOpacity onPress={() => setIsSidebarOpen(false)}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
+            </View>
+            <Sidebar onClose={() => setIsSidebarOpen(false)} />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -725,7 +767,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#faf5ff',
+    backgroundColor: '#ffffff',
   },
   recSection: {
     marginVertical: 16,
@@ -740,11 +782,11 @@ const styles = StyleSheet.create({
   recSectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#111827', // Dark Gray/Black for accessibility
   },
   recSectionSub: {
     fontSize: 11,
-    color: '#6b7280',
+    color: '#6b7280', // Soft readable Gray
   },
   recScroll: {
     gap: 12,
@@ -752,10 +794,10 @@ const styles = StyleSheet.create({
   },
   recCard: {
     width: 140,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#ffffff', // Clean white background
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: '#e9d5ff', // Elegant subtle purple border
     overflow: 'hidden',
   },
   recCardImage: {
@@ -769,26 +811,26 @@ const styles = StyleSheet.create({
   recCardStore: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: '#6200EE',
+    color: '#7c3aed', // Brand purple
     textTransform: 'uppercase',
   },
   recCardTitle: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#374151',
+    color: '#1f2937', // Dark readable gray
     marginTop: 2,
   },
   recCardPrice: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#059669',
+    color: '#7c3aed', // Brand purple
     marginTop: 4,
   },
   floatingAssistantButton: {
     position: 'absolute',
     bottom: 24,
     right: 24,
-    backgroundColor: '#6200EE', // Primary Colors fallback
+    backgroundColor: Colors.buttonPrimary, // Bright Purple
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -990,123 +1032,163 @@ const styles = StyleSheet.create({
     marginTop: 15,
   },
   header: {
-    backgroundColor: '#f3e8ff',
-    padding: 16,
-    paddingTop: 40,
+    backgroundColor: '#2A0A4A', // Royal dark purple theme from screenshot
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+    paddingTop: 54, // Adjust for mobile notch
   },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  hamburgerBtn: {
+    marginRight: 10,
   },
   logoWrapper: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 2,
-    marginRight: 12,
+    borderRadius: 10,
+    width: 42,
+    height: 42,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
   },
   headerLogo: {
     width: 32,
     height: 32,
-    borderRadius: 10,
+    resizeMode: 'contain',
   },
   brandTitle: {
-    color: '#4c1d95',
-    fontSize: 20,
+    color: '#ffffff',
+    fontSize: 18,
     fontWeight: 'bold',
   },
-  districtSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    gap: 4,
-  },
-  districtText: {
-    color: '#6b21a8',
-    fontSize: 12,
+  brandSubtitle: {
+    color: '#c084fc', // Vibrant light lavender
+    fontSize: 11,
     fontWeight: '500',
-  },
-  districtChevron: {
-    marginLeft: 0,
+    marginTop: 1,
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+  },
+  notifyContainer: {
+    position: 'relative',
+  },
+  notifyBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#ef4444',
+    borderRadius: 7,
+    width: 14,
+    height: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  notifyCount: {
+    color: 'white',
+    fontSize: 9,
+    fontWeight: 'bold',
+  },
+  profileSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 18,
+    paddingLeft: 4,
+    paddingRight: 8,
+    paddingVertical: 4,
+    gap: 6,
+    maxWidth: 100,
+  },
+  avatarImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#e5e7eb',
+  },
+  profileName: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  secondRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: 'rgba(255,255,255,0.08)', // Translucent location pill
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    gap: 4,
+    paddingVertical: 10,
+    borderRadius: 22,
+    gap: 6,
+    minWidth: 125,
+    maxWidth: 140,
+    height: 44,
   },
   locationPillText: {
-    color: '#111827',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  notifyContainer: {
-    position: 'relative',
-    marginRight: 4,
-  },
-  notifyBadge: {
-    position: 'absolute',
-    top: -2,
-    right: -4,
-    backgroundColor: '#ef4444',
-    borderRadius: 8,
-    width: 16,
-    height: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notifyCount: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  loginBtn: {
-    backgroundColor: '#6b21a8',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  loginBtnText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    gap: 8,
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '600',
+    flex: 1,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.08)', // Translucent search capsule
+    borderRadius: 22,
+    paddingLeft: 14,
+    paddingRight: 6,
+    height: 44,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 13,
+    color: '#ffffff',
+    paddingVertical: 0,
   },
-  searchBtn: {
-    backgroundColor: '#6b21a8',
-    paddingHorizontal: 20,
-    borderRadius: 24,
+  cameraIconBtn: {
+    backgroundColor: '#7C3AED', // Premium vibrant purple button
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
+    alignItems: 'center',
   },
-  searchBtnText: {
-    color: 'white',
+  sidebarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    flexDirection: 'row',
+  },
+  sidebarContent: {
+    width: 280,
+    backgroundColor: '#ffffff',
+    height: '100%',
+    paddingTop: 50,
+  },
+  sidebarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  sidebarTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#111827',
   },
   modalOverlay: {
     flex: 1,
@@ -1177,11 +1259,11 @@ const styles = StyleSheet.create({
   },
   topTabText: {
     fontSize: 14,
-    color: '#e9d5ff',
+    color: '#6b7280',
     fontWeight: '500',
   },
   topTabTextActive: {
-    color: '#fbcfe8',
+    color: Colors.primary,
     fontWeight: 'bold',
   },
   categoryScroll: {
@@ -1194,8 +1276,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#5b21b6',
-    backgroundColor: '#3b0764',
+    borderColor: '#e9d5ff',
+    backgroundColor: '#f5f3ff',
   },
   catBtnActive: {
     backgroundColor: Colors.primary,
@@ -1204,7 +1286,7 @@ const styles = StyleSheet.create({
   catBtnText: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: '#e9d5ff',
+    color: '#7c3aed',
   },
   catBtnTextActive: {
     color: 'white',
@@ -1222,12 +1304,12 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#3b0764',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 6,
     borderWidth: 2,
-    borderColor: '#5b21b6',
+    borderColor: '#e9d5ff',
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1239,21 +1321,22 @@ const styles = StyleSheet.create({
     borderColor: '#f97316',
   },
   brandLogo: {
-    color: '#9ca3af',
-    fontSize: 18,
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: 'bold',
   },
   brandLogoSelected: {
     color: '#f97316',
   },
   brandLogoImage: {
-    width: 44,
-    height: 44,
-    resizeMode: 'contain',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    resizeMode: 'cover',
   },
   brandName: {
     fontSize: 11,
-    color: '#e9d5ff',
+    color: '#374151',
     fontWeight: '500',
   },
   brandNameSelected: {
@@ -1428,7 +1511,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   darkSection: {
-    backgroundColor: '#2e1065',
+    backgroundColor: '#f5f3ff',
     borderRadius: 24,
     marginHorizontal: 12,
     marginTop: 8,

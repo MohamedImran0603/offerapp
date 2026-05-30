@@ -587,7 +587,7 @@ export default function AdminScreen() {
           {!isDesktop && (
             <View style={styles.mobileHeaderBar}>
               <TouchableOpacity onPress={() => setIsMobileMenuOpen(true)} style={styles.menuIconContainer}>
-                <Text style={{ fontSize: 24, color: '#ffffff' }}>☰</Text>
+                <Text style={{ fontSize: 24, color: '#111827' }}>☰</Text>
               </TouchableOpacity>
               <Text style={styles.mobileHeaderTitle}>Offer Lanka Enterprise</Text>
               <TouchableOpacity onPress={fetchDashboardStatsAndData} style={styles.mobileRefreshContainer}>
@@ -1148,7 +1148,7 @@ export default function AdminScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121214', // Exact luxury dark background matching Screenshot 1!
+    backgroundColor: '#ffffff',
   },
   searchBarWrapper: {
     flexDirection: 'row',
@@ -1317,24 +1317,24 @@ const styles = StyleSheet.create({
   // RIGHT CONTENT AREA WINDOW STYLE
   mainContentView: {
     flex: 1,
-    backgroundColor: '#121214',
+    backgroundColor: '#ffffff',
   },
   mobileHeaderBar: {
     paddingTop: 36, // Drop perfectly below the phone clock and status metrics!
     paddingBottom: 16,
-    backgroundColor: '#09090b',
+    backgroundColor: '#ffffff',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1f1f23',
+    borderBottomColor: '#f4f4f5',
   },
   menuIconContainer: {
     padding: 8,
   },
   mobileHeaderTitle: {
-    color: '#ffffff',
+    color: '#111827',
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -1348,7 +1348,7 @@ const styles = StyleSheet.create({
   sectionHeaderTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#ffffff',
+    color: '#111827',
     marginBottom: 24,
   },
   // DASHBOARD LAYOUT & CARDS (Exact match to Screenshot 1!)

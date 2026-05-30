@@ -9,6 +9,7 @@ import { logAdminActivity } from "@/lib/auditLogger";
 
 export default function OffersPage() {
   const { user, role } = useAuth();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [offers, setOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
